@@ -1,24 +1,17 @@
 package accounts
 
 import (
-	"errors"
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
 func (client *Client) DeleteResource(accountID string, version int) error {
-	_, err := uuid.Parse(accountID)
-	if err != nil {
-		return errors.New(
-			fmt.Sprintf("invalid uuid format: %s", accountID),
-		)
+	if err := validateAccountIDFormat(accountID); err != nil {
+		return fmt.Errorf("%w; unable to delete resource", err)
 	}
 
 	resourcePath := fmt.Sprintf("%s/%s?version=%d", basePath, accountID, version)
-	err = client.http.Delete(resourcePath)
-	if err != nil {
-		return err
+	if err := client.http.Delete(resourcePath); err != nil {
+		return fmt.Errorf("%w; unable to delete resource", err)
 	}
 
 	return nil
