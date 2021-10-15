@@ -2,10 +2,10 @@ package accounts
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +26,21 @@ func TestFetchAccount(t *testing.T) {
 			name: "failed to fetch an account due a not found account id",
 			uuid: "00000000-0000-0000-0000-000000000000",
 			httpUtilsSetup: func(client *mockHttpUtils) {
-				client.On("Get", mock.Anything).Return(nil, errors.New("not found"))
+				client.On("Get", mock.Anything).Return(
+					nil,
+					errors.New("not found"),
+				)
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failed to fetch data due an data response inconsistency",
+			uuid: "00000000-0000-0000-0000-000000000000",
+			httpUtilsSetup: func(client *mockHttpUtils) {
+				client.On("Get", mock.Anything).Return(
+					[]byte("invalid json"),
+					errors.New("unable to unmarshal"),
+				)
 			},
 			wantErr: true,
 		},
@@ -34,7 +48,10 @@ func TestFetchAccount(t *testing.T) {
 			name: "Successfully fetch an account",
 			uuid: "00000000-0000-0000-0000-000000000000",
 			httpUtilsSetup: func(client *mockHttpUtils) {
-				client.On("Get", mock.Anything).Return(loadTestFile("./testdata/fetch_response.json"), nil)
+				client.On("Get", mock.Anything).Return(
+					loadTestFile("./testdata/fetch_response.json"),
+					nil,
+				)
 			},
 			wantErr: false,
 		},
