@@ -6,6 +6,7 @@ const (
 
 type httpUtils interface {
 	Delete(resourcePath string) error
+	Get(resourcePath string) ([]byte, error)
 }
 
 type Client struct {

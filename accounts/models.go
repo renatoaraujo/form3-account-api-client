@@ -1,4 +1,6 @@
-// Account represents an account in the form3 org section.
+package accounts
+
+// AccountData represents an account in the form3 org section.
 // See https://api-docs.form3.tech/api.html#organisation-accounts for
 // more information about fields.
 type AccountData struct {
@@ -25,4 +27,8 @@ type AccountAttributes struct {
 	SecondaryIdentification string   `json:"secondary_identification,omitempty"`
 	Status                  *string  `json:"status,omitempty"`
 	Switched                *bool    `json:"switched,omitempty"`
+}
+
+type response struct {
+	Data *AccountData `json:"data"`
 }
