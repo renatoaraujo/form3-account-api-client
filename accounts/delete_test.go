@@ -10,10 +10,10 @@ import (
 
 func TestDeleteAccount(t *testing.T) {
 	tests := []struct {
-		name            string
-		uuid            string
-		httpClientSetup func(*mockHttpClient)
-		wantErr         bool
+		name           string
+		uuid           string
+		httpUtilsSetup func(*mockHttpUtils)
+		wantErr        bool
 	}{
 		{
 			name:    "failed to delete an account due an invalid uuid",
@@ -23,7 +23,7 @@ func TestDeleteAccount(t *testing.T) {
 		{
 			name: "failed to delete an account due a response with an error content from the api",
 			uuid: "00000000-0000-0000-0000-000000000000",
-			httpClientSetup: func(client *mockHttpClient) {
+			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Delete", mock.Anything).Return(errors.New("failed because of an 404 or 409"))
 			},
 			wantErr: true,
@@ -31,7 +31,7 @@ func TestDeleteAccount(t *testing.T) {
 		{
 			name: "it will successfully delete an account",
 			uuid: "00000000-0000-0000-0000-000000000000",
-			httpClientSetup: func(client *mockHttpClient) {
+			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Delete", mock.Anything).Return(nil)
 			},
 			wantErr: false,
@@ -41,12 +41,12 @@ func TestDeleteAccount(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			httpClientMock := &mockHttpClient{}
-			if tt.httpClientSetup != nil {
-				tt.httpClientSetup(httpClientMock)
+			httpUtilsMock := &mockHttpUtils{}
+			if tt.httpUtilsSetup != nil {
+				tt.httpUtilsSetup(httpUtilsMock)
 			}
 
-			accountsClient := NewClient(httpClientMock)
+			accountsClient := NewClient(httpUtilsMock)
 			err := accountsClient.DeleteResource(tt.uuid, 123)
 			if tt.wantErr {
 				require.Error(t, err)
