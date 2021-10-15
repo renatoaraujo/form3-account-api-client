@@ -7,8 +7,7 @@ import (
 )
 
 func (client *Client) FetchResource(accountID string) (*AccountData, error) {
-	err := validateAccountIDFormat(accountID)
-	if err != nil {
+	if err := validateAccountIDFormat(accountID); err != nil {
 		return nil, fmt.Errorf("%w; unable to fetch resource", err)
 	}
 
