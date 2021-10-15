@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"testing"
 
@@ -48,11 +49,15 @@ func TestFetchAccount(t *testing.T) {
 			}
 
 			accountsClient := NewClient(httpUtilsMock)
-			_, err := accountsClient.FetchResource(tt.uuid)
+			accountData, err := accountsClient.FetchResource(tt.uuid)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+			}
+
+			if accountData != nil {
+				assert.IsType(t, &AccountData{}, accountData)
 			}
 		})
 	}
