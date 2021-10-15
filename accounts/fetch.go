@@ -4,28 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
 func (client *Client) FetchResource(accountID string) (*AccountData, error) {
-	_, err := uuid.Parse(accountID)
+	err := validateAccountIDFormat(accountID)
 	if err != nil {
-		return nil, errors.New(
-			fmt.Sprintf("invalid uuid: %s", accountID),
-		)
+		return nil, fmt.Errorf("%w; unable to fetch resource", err)
 	}
 
 	resourcePath := fmt.Sprintf("%s/%s", basePath, accountID)
 	apiResponse, err := client.http.Get(resourcePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w; unable to fetch resource", err)
 	}
 
 	responseData := &response{}
-	err = json.Unmarshal(apiResponse, responseData)
-	if err != nil {
-		errors.New("failed to unmarshal response data")
+	if err = json.Unmarshal(apiResponse, responseData); err != nil {
+		return nil, errors.New("failed to unmarshal response data")
 	}
 
 	return responseData.Data, nil

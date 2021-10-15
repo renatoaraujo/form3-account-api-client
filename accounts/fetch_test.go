@@ -13,18 +13,13 @@ import (
 func TestFetchAccount(t *testing.T) {
 	tests := []struct {
 		name           string
-		uuid           string
+		AccountID      string
 		httpUtilsSetup func(utils *mockHttpUtils)
 		wantErr        bool
 	}{
 		{
-			name:    "failed to fetch an account due an invalid uuid",
-			uuid:    "invalid-uuid",
-			wantErr: true,
-		},
-		{
-			name: "failed to fetch an account due a not found account id",
-			uuid: "00000000-0000-0000-0000-000000000000",
+			name:      "Failed to fetch an account due a not found account id",
+			AccountID: "00000000-0000-0000-0000-000000000000",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
 					nil,
@@ -34,19 +29,19 @@ func TestFetchAccount(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Failed to fetch data due an data response inconsistency",
-			uuid: "00000000-0000-0000-0000-000000000000",
+			name:      "Failed to fetch data due a missing data in response format",
+			AccountID: "00000000-0000-0000-0000-000000000000",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
 					[]byte("invalid json"),
-					errors.New("unable to unmarshal"),
+					errors.New("unable to unmarshal invalid json"),
 				)
 			},
 			wantErr: true,
 		},
 		{
-			name: "Successfully fetch an account",
-			uuid: "00000000-0000-0000-0000-000000000000",
+			name:      "Successfully fetch an account",
+			AccountID: "00000000-0000-0000-0000-000000000000",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
 					loadTestFile("./testdata/fetch_response.json"),
@@ -66,7 +61,7 @@ func TestFetchAccount(t *testing.T) {
 			}
 
 			accountsClient := NewClient(httpUtilsMock)
-			accountData, err := accountsClient.FetchResource(tt.uuid)
+			accountData, err := accountsClient.FetchResource(tt.AccountID)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

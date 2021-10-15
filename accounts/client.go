@@ -1,5 +1,12 @@
 package accounts
 
+import (
+	"errors"
+	"fmt"
+
+	"github.com/google/uuid"
+)
+
 const (
 	basePath = "/v1/organisation/accounts"
 )
@@ -15,4 +22,15 @@ type Client struct {
 
 func NewClient(httpUtils httpUtils) Client {
 	return Client{http: httpUtils}
+}
+
+func validateAccountIDFormat(accountID string) error {
+	_, err := uuid.Parse(accountID)
+	if err != nil {
+		return errors.New(
+			fmt.Sprintf("invalid account id uuid format: %s", accountID),
+		)
+	}
+
+	return nil
 }
