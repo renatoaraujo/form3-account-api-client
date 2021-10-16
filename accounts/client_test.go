@@ -5,40 +5,11 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-func TestValidateAccountIDFormat(t *testing.T) {
-	tests := []struct {
-		name      string
-		accountID string
-		wantErr   bool
-	}{
-		{
-			name:      "Failed due an invalid account id format",
-			accountID: "this is an invalid uuid format",
-			wantErr:   true,
-		},
-		{
-			name:      "Successfully validate the account id format",
-			accountID: "00000000-0000-0000-0000-000000000000",
-			wantErr:   false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateAccountIDFormat(tt.accountID)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
 
 func TestExtractAccountDataFromResponse(t *testing.T) {
 	tests := []struct {
@@ -169,13 +140,11 @@ func TestCreateAccount(t *testing.T) {
 func TestFetchAccount(t *testing.T) {
 	tests := []struct {
 		name           string
-		AccountID      string
 		httpUtilsSetup func(utils *mockHttpUtils)
 		wantErr        bool
 	}{
 		{
-			name:      "Failed to fetch an account due a not found account id",
-			AccountID: "00000000-0000-0000-0000-000000000000",
+			name: "Failed to fetch an account due a not found account id",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
 					nil,
@@ -185,8 +154,7 @@ func TestFetchAccount(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:      "Failed to fetch data due a missing data in response format",
-			AccountID: "00000000-0000-0000-0000-000000000000",
+			name: "Failed to fetch data due a missing data in response format",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
 					[]byte("invalid json"),
@@ -196,8 +164,7 @@ func TestFetchAccount(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:      "Successfully fetch an account",
-			AccountID: "00000000-0000-0000-0000-000000000000",
+			name: "Successfully fetch an account",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
 					loadTestFile("./testdata/fetch_response.json"),
@@ -217,7 +184,11 @@ func TestFetchAccount(t *testing.T) {
 			}
 
 			accountsClient := NewClient(httpUtilsMock)
-			accountData, err := accountsClient.FetchResource(tt.AccountID)
+
+			accountID, err := uuid.NewUUID()
+			require.NoError(t, err)
+
+			accountData, err := accountsClient.FetchResource(accountID)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -236,13 +207,11 @@ func TestFetchAccount(t *testing.T) {
 func TestDeleteAccount(t *testing.T) {
 	tests := []struct {
 		name           string
-		accountID      string
 		httpUtilsSetup func(*mockHttpUtils)
 		wantErr        bool
 	}{
 		{
-			name:      "failed to delete an account due a response with an error content from the api",
-			accountID: "00000000-0000-0000-0000-000000000000",
+			name: "failed to delete an account due a response with an error content from the api",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Delete", mock.Anything).Return(
 					errors.New("failed because of an 404 or 409"),
@@ -251,8 +220,7 @@ func TestDeleteAccount(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:      "it will successfully delete an account",
-			accountID: "00000000-0000-0000-0000-000000000000",
+			name: "it will successfully delete an account",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Delete", mock.Anything).Return(nil)
 			},
@@ -269,7 +237,11 @@ func TestDeleteAccount(t *testing.T) {
 			}
 
 			accountsClient := NewClient(httpUtilsMock)
-			err := accountsClient.DeleteResource(tt.accountID, 123)
+
+			accountID, err := uuid.NewUUID()
+			require.NoError(t, err)
+
+			err = accountsClient.DeleteResource(accountID, 123)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

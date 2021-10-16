@@ -26,17 +26,6 @@ func NewClient(httpUtils httpUtils) Client {
 	return Client{http: httpUtils}
 }
 
-func validateAccountIDFormat(accountID string) error {
-	_, err := uuid.Parse(accountID)
-	if err != nil {
-		return errors.New(
-			fmt.Sprintf("invalid account id uuid format: %s", accountID),
-		)
-	}
-
-	return nil
-}
-
 func extractAccountDataFromResponse(response []byte) (*AccountData, error) {
 	responsePayload := &payload{}
 	if err := json.Unmarshal(response, responsePayload); err != nil {
@@ -67,12 +56,8 @@ func (client *Client) CreateResource(accountData *AccountData) (*AccountData, er
 	return responseAccountData, nil
 }
 
-func (client *Client) FetchResource(accountID string) (*AccountData, error) {
-	if err := validateAccountIDFormat(accountID); err != nil {
-		return nil, fmt.Errorf("%w; unable to fetch resource", err)
-	}
-
-	resourcePath := fmt.Sprintf("%s/%s", basePath, accountID)
+func (client *Client) FetchResource(accountID uuid.UUID) (*AccountData, error) {
+	resourcePath := fmt.Sprintf("%s/%s", basePath, accountID.String())
 	response, err := client.http.Get(resourcePath)
 	if err != nil {
 		return nil, fmt.Errorf("%w; unable to fetch resource", err)
@@ -86,12 +71,8 @@ func (client *Client) FetchResource(accountID string) (*AccountData, error) {
 	return responseAccountData, nil
 }
 
-func (client *Client) DeleteResource(accountID string, version int) error {
-	if err := validateAccountIDFormat(accountID); err != nil {
-		return fmt.Errorf("%w; unable to delete resource", err)
-	}
-
-	resourcePath := fmt.Sprintf("%s/%s?version=%d", basePath, accountID, version)
+func (client *Client) DeleteResource(accountID uuid.UUID, version int) error {
+	resourcePath := fmt.Sprintf("%s/%s?version=%d", basePath, accountID.String(), version)
 	if err := client.http.Delete(resourcePath); err != nil {
 		return fmt.Errorf("%w; unable to delete resource", err)
 	}
