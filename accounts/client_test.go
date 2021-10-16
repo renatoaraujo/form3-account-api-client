@@ -166,6 +166,8 @@ func TestFetchAccount(t *testing.T) {
 			if accountData != nil {
 				assert.IsType(t, &AccountData{}, accountData)
 			}
+
+			mock.AssertExpectationsForObjects(t, httpUtilsMock)
 		})
 	}
 }
@@ -212,6 +214,8 @@ func TestDeleteAccount(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+
+			mock.AssertExpectationsForObjects(t, httpUtilsMock)
 		})
 	}
 }
