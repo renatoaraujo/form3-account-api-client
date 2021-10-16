@@ -72,7 +72,7 @@ func TestExtractAccountDataFromResponse(t *testing.T) {
 	}
 }
 
-func TestCreateAccount(t *testing.T) {
+func TestCreateResource(t *testing.T) {
 	tests := []struct {
 		name           string
 		accountData    *AccountData
@@ -137,7 +137,7 @@ func TestCreateAccount(t *testing.T) {
 	}
 }
 
-func TestFetchAccount(t *testing.T) {
+func TestFetchResource(t *testing.T) {
 	tests := []struct {
 		name           string
 		httpUtilsSetup func(utils *mockHttpUtils)
@@ -204,7 +204,7 @@ func TestFetchAccount(t *testing.T) {
 	}
 }
 
-func TestDeleteAccount(t *testing.T) {
+func TestDeleteResource(t *testing.T) {
 	tests := []struct {
 		name           string
 		httpUtilsSetup func(*mockHttpUtils)
