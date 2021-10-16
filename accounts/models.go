@@ -29,6 +29,6 @@ type AccountAttributes struct {
 	Switched                *bool    `json:"switched,omitempty"`
 }
 
-type response struct {
+type payload struct {
 	Data *AccountData `json:"data"`
 }

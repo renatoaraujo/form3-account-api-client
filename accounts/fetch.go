@@ -17,10 +17,10 @@ func (client *Client) FetchResource(accountID string) (*AccountData, error) {
 		return nil, fmt.Errorf("%w; unable to fetch resource", err)
 	}
 
-	responseData := &response{}
-	if err = json.Unmarshal(apiResponse, responseData); err != nil {
+	responsePayload := &payload{}
+	if err = json.Unmarshal(apiResponse, responsePayload); err != nil {
 		return nil, errors.New("failed to unmarshal response data")
 	}
 
-	return responseData.Data, nil
+	return responsePayload.Data, nil
 }
