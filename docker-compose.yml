@@ -1,6 +1,12 @@
 version: '3'
 
 services:
+
+  tests:
+    build:
+      dockerfile: Dockerfile
+      context: .
+
   accountapi:
     image: form3tech/interview-accountapi:v1.0.0-39-gef7db03d
     restart: on-failure
@@ -20,7 +26,8 @@ services:
       - DATABASE-USERNAME=interview_accountapi_user
       - DATABASE-PASSWORD=123
     ports:
-      - 8080:8080
+      - "8080:8080"
+
   postgresql:
     image: postgres:9.5-alpine
     healthcheck:
