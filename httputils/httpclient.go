@@ -22,7 +22,7 @@ type Client struct {
 func NewClient(client httpClient, baseURI string) (*Client, error) {
 	parsedBaseURI, err := url.ParseRequestURI(baseURI)
 	if err != nil {
-		return nil, fmt.Errorf("%w; invalid base url, please update base_url environment", err)
+		return nil, fmt.Errorf("%w; invalid base uri", err)
 	}
 
 	return &Client{
