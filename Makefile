@@ -8,8 +8,8 @@ up: ## Spin up the containers
 build: ## Build the containers
 	$(dockerCompose) build
 
-reset: ## Resets the containers removing the images
-	$(dockerCompose) down --rmi all
+reset: ## Resets the containers removing the built image
+	$(dockerCompose) down --rmi local
 
 tests: reset build ## Run the tests
 	$(dockerCompose) up tests
