@@ -40,6 +40,67 @@ func TestValidateAccountIDFormat(t *testing.T) {
 	}
 }
 
+func TestExtractAccountDataFromResponse(t *testing.T) {
+	tests := []struct {
+		name        string
+		response    []byte
+		accountData AccountData
+		wantErr     bool
+	}{
+		{
+			name:     "Failed to unsmarshal an invalid response json data format",
+			response: []byte("this is an invalid response data"),
+			wantErr:  true,
+		},
+		{
+			name:     "Successfully unsmarshal a valid response data format and returns an account data",
+			response: loadTestFile("./testdata/fetch_response.json"),
+			accountData: AccountData{
+				Attributes: &AccountAttributes{
+					BankID:       "400300",
+					BankIDCode:   "GBDSC",
+					BaseCurrency: "GBP",
+					Bic:          "NWBKGB22",
+					Country:      &[]string{"GB"}[0],
+					Name:         []string{"john doe"},
+				},
+				ID:             "ad27e265-9605-4b4b-a0e5-3003ea9cc4dc",
+				OrganisationID: "eb0bd6f5-c3f5-44b2-b677-acd23cdde73c",
+				Type:           "accounts",
+				Version:        &[]int64{12}[0],
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			accountData, err := extractAccountDataFromResponse(tt.response)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			if accountData != nil {
+				assert.IsType(t, &AccountData{}, accountData)
+				assert.Equal(t, tt.accountData.ID, accountData.ID)
+				assert.Equal(t, tt.accountData.OrganisationID, accountData.OrganisationID)
+				assert.Equal(t, tt.accountData.Type, accountData.Type)
+				assert.Equal(t, tt.accountData.Version, accountData.Version)
+
+				assert.IsType(t, &AccountAttributes{}, accountData.Attributes)
+				assert.Equal(t, tt.accountData.Attributes.BankID, accountData.Attributes.BankID)
+				assert.Equal(t, tt.accountData.Attributes.BankIDCode, accountData.Attributes.BankIDCode)
+				assert.Equal(t, tt.accountData.Attributes.BaseCurrency, accountData.Attributes.BaseCurrency)
+				assert.Equal(t, tt.accountData.Attributes.Bic, accountData.Attributes.Bic)
+				assert.Equal(t, tt.accountData.Attributes.Country, accountData.Attributes.Country)
+				assert.Equal(t, tt.accountData.Attributes.Name, accountData.Attributes.Name)
+			}
+		})
+	}
+}
+
 func TestCreateAccount(t *testing.T) {
 	tests := []struct {
 		name           string

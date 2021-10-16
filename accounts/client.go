@@ -37,6 +37,15 @@ func validateAccountIDFormat(accountID string) error {
 	return nil
 }
 
+func extractAccountDataFromResponse(response []byte) (*AccountData, error) {
+	responsePayload := &payload{}
+	if err := json.Unmarshal(response, responsePayload); err != nil {
+		return nil, errors.New("failed to unmarshal response data")
+	}
+
+	return responsePayload.Data, nil
+}
+
 func (client *Client) CreateResource(accountData *AccountData) (*AccountData, error) {
 	requestPayload, err := json.Marshal(&payload{
 		Data: accountData,
@@ -45,17 +54,17 @@ func (client *Client) CreateResource(accountData *AccountData) (*AccountData, er
 		return nil, fmt.Errorf("%w; unable to convert account data payload", err)
 	}
 
-	apiResponse, err := client.http.Post(basePath, requestPayload)
+	response, err := client.http.Post(basePath, requestPayload)
 	if err != nil {
 		return nil, fmt.Errorf("%w; unable to create resource", err)
 	}
 
-	responsePayload := &payload{}
-	if err = json.Unmarshal(apiResponse, responsePayload); err != nil {
-		return nil, errors.New("the response from the api was successfully but failed to unmarshal response data")
+	responseAccountData, err := extractAccountDataFromResponse(response)
+	if err != nil {
+		return nil, fmt.Errorf("%w; failed to extract account data after successful account creation", err)
 	}
 
-	return responsePayload.Data, nil
+	return responseAccountData, nil
 }
 
 func (client *Client) FetchResource(accountID string) (*AccountData, error) {
@@ -64,17 +73,17 @@ func (client *Client) FetchResource(accountID string) (*AccountData, error) {
 	}
 
 	resourcePath := fmt.Sprintf("%s/%s", basePath, accountID)
-	apiResponse, err := client.http.Get(resourcePath)
+	response, err := client.http.Get(resourcePath)
 	if err != nil {
 		return nil, fmt.Errorf("%w; unable to fetch resource", err)
 	}
 
-	responsePayload := &payload{}
-	if err = json.Unmarshal(apiResponse, responsePayload); err != nil {
-		return nil, errors.New("failed to unmarshal response data")
+	responseAccountData, err := extractAccountDataFromResponse(response)
+	if err != nil {
+		return nil, fmt.Errorf("%w; unable to extract the fetched data from the response", err)
 	}
 
-	return responsePayload.Data, nil
+	return responseAccountData, nil
 }
 
 func (client *Client) DeleteResource(accountID string, version int) error {
