@@ -20,7 +20,7 @@ Cheers :beers:
 
 In order to use this library in your project you just need to import it using the following command:
 ```bash
-$ go get github.com/renatoaraujo/form3-account-api-client@0.1.0
+$ go get github.com/renatoaraujo/form3-account-api-client@1.0.0
 ```
 
 #### Accounts
