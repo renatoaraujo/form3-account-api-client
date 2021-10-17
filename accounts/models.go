@@ -8,7 +8,7 @@ type AccountData struct {
 	ID             string             `json:"id,omitempty"`
 	OrganisationID string             `json:"organisation_id,omitempty"`
 	Type           string             `json:"type,omitempty"`
-	Version        *int64             `json:"version,omitempty"`
+	Version        int                `json:"version,omitempty"`
 }
 
 type AccountAttributes struct {

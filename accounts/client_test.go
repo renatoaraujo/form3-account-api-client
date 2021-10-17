@@ -19,13 +19,13 @@ func TestExtractAccountDataFromResponse(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:     "Failed to unsmarshal an invalid response json data format",
+			name:     "Failed to convert an invalid json data format from the response",
 			response: []byte("this is an invalid response data"),
 			wantErr:  true,
 		},
 		{
-			name:     "Successfully unsmarshal a valid response data format and returns an account data",
-			response: loadTestFile("./testdata/fetch_response.json"),
+			name:     "Successfully converts a valid response data format and returns an account data",
+			response: loadTestFile("./testdata/api_response.json"),
 			accountData: AccountData{
 				Attributes: &AccountAttributes{
 					BankID:       "400300",
@@ -38,7 +38,7 @@ func TestExtractAccountDataFromResponse(t *testing.T) {
 				ID:             "ad27e265-9605-4b4b-a0e5-3003ea9cc4dc",
 				OrganisationID: "eb0bd6f5-c3f5-44b2-b677-acd23cdde73c",
 				Type:           "accounts",
-				Version:        &[]int64{12}[0],
+				Version:        12,
 			},
 			wantErr: false,
 		},
@@ -80,20 +80,20 @@ func TestCreateResource(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name: "Failed to create an account with a conflict or bad request error",
+			name: "Failed to create an account because of an API error",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Post", mock.Anything, mock.Anything).Return(
 					nil,
-					errors.New("failed because of an 409, 400"),
+					errors.New("the api failed the request"),
 				)
 			},
 			wantErr: true,
 		},
 		{
-			name: "Failed to unsmarshal the response data after creating an account",
+			name: "Failed to convert the response data after creating an account successfully",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Post", mock.Anything, mock.Anything).Return(
-					[]byte("this is an invalid response data"),
+					[]byte("the api did not failed but this is a wrong response data format"),
 					nil,
 				)
 			},
@@ -103,7 +103,7 @@ func TestCreateResource(t *testing.T) {
 			name: "Successfully creates an account",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Post", mock.Anything, mock.Anything).Return(
-					loadTestFile("./testdata/fetch_response.json"),
+					loadTestFile("./testdata/api_response.json"),
 					nil,
 				)
 			},
@@ -144,7 +144,7 @@ func TestFetchResource(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name: "Failed to fetch an account due a not found account id",
+			name: "Failed to fetch account data because of account id was not found",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
 					nil,
@@ -154,7 +154,7 @@ func TestFetchResource(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Failed to fetch data due a missing data in response format",
+			name: "Failed to fetch because of an invalid format from the api response",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
 					[]byte("invalid json"),
@@ -164,10 +164,10 @@ func TestFetchResource(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Successfully fetch an account",
+			name: "Successfully fetches an account",
 			httpUtilsSetup: func(client *mockHttpUtils) {
 				client.On("Get", mock.Anything).Return(
-					loadTestFile("./testdata/fetch_response.json"),
+					loadTestFile("./testdata/api_response.json"),
 					nil,
 				)
 			},
@@ -211,18 +211,18 @@ func TestDeleteResource(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name: "failed to delete an account due a response with an error content from the api",
+			name: "Failed to delete an account with an error response from the api",
 			httpUtilsSetup: func(client *mockHttpUtils) {
-				client.On("Delete", mock.Anything).Return(
-					errors.New("failed because of an 404 or 409"),
+				client.On("Delete", mock.Anything, mock.Anything).Return(
+					errors.New("failed because of a failure in the api"),
 				)
 			},
 			wantErr: true,
 		},
 		{
-			name: "it will successfully delete an account",
+			name: "Successfully deletes an account",
 			httpUtilsSetup: func(client *mockHttpUtils) {
-				client.On("Delete", mock.Anything).Return(nil)
+				client.On("Delete", mock.Anything, mock.Anything).Return(nil)
 			},
 			wantErr: false,
 		},

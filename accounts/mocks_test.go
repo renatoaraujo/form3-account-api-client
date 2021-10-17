@@ -9,13 +9,13 @@ type mockHttpUtils struct {
 	mock.Mock
 }
 
-// Delete provides a mock function with given fields: resourcePath
-func (_m *mockHttpUtils) Delete(resourcePath string) error {
-	ret := _m.Called(resourcePath)
+// Delete provides a mock function with given fields: resourcePath, query
+func (_m *mockHttpUtils) Delete(resourcePath string, query map[string]string) error {
+	ret := _m.Called(resourcePath, query)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(resourcePath)
+	if rf, ok := ret.Get(0).(func(string, map[string]string) error); ok {
+		r0 = rf(resourcePath, query)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -46,13 +46,13 @@ func (_m *mockHttpUtils) Get(resourcePath string) ([]byte, error) {
 	return r0, r1
 }
 
-// Post provides a mock function with given fields: resourcePath, payload
-func (_m *mockHttpUtils) Post(resourcePath string, payload []byte) ([]byte, error) {
-	ret := _m.Called(resourcePath, payload)
+// Post provides a mock function with given fields: resourcePath, body
+func (_m *mockHttpUtils) Post(resourcePath string, body []byte) ([]byte, error) {
+	ret := _m.Called(resourcePath, body)
 
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func(string, []byte) []byte); ok {
-		r0 = rf(resourcePath, payload)
+		r0 = rf(resourcePath, body)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
@@ -61,7 +61,7 @@ func (_m *mockHttpUtils) Post(resourcePath string, payload []byte) ([]byte, erro
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, []byte) error); ok {
-		r1 = rf(resourcePath, payload)
+		r1 = rf(resourcePath, body)
 	} else {
 		r1 = ret.Error(1)
 	}

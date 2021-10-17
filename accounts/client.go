@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 )
@@ -13,9 +14,9 @@ const (
 )
 
 type httpUtils interface {
-	Delete(resourcePath string) error
+	Delete(resourcePath string, query map[string]string) error
 	Get(resourcePath string) ([]byte, error)
-	Post(resourcePath string, payload []byte) ([]byte, error)
+	Post(resourcePath string, body []byte) ([]byte, error)
 }
 
 type Client struct {
@@ -72,8 +73,11 @@ func (client *Client) FetchResource(accountID uuid.UUID) (*AccountData, error) {
 }
 
 func (client *Client) DeleteResource(accountID uuid.UUID, version int) error {
-	resourcePath := fmt.Sprintf("%s/%s?version=%d", basePath, accountID.String(), version)
-	if err := client.http.Delete(resourcePath); err != nil {
+	resourcePath := fmt.Sprintf("%s/%s", basePath, accountID.String())
+	query := map[string]string{
+		"version": strconv.Itoa(version),
+	}
+	if err := client.http.Delete(resourcePath, query); err != nil {
 		return fmt.Errorf("%w; unable to delete resource", err)
 	}
 
