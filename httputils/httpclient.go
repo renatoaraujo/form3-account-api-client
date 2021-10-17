@@ -18,6 +18,7 @@ type Client struct {
 	baseURL    url.URL
 }
 
+// NewClient creates a new http client instance with a http client which implements Do function and the base URI
 func NewClient(client httpClient, baseURI string) (*Client, error) {
 	parsedBaseURI, err := url.ParseRequestURI(baseURI)
 	if err != nil {
@@ -33,6 +34,7 @@ func NewClient(client httpClient, baseURI string) (*Client, error) {
 	}, nil
 }
 
+// Post data to an API endpoint with given path and body content
 func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath})
 	request, err := http.NewRequest("POST", requestURL.String(), bytes.NewBuffer(body))
@@ -48,6 +50,7 @@ func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 	return handleResponse(response)
 }
 
+// Get data from an API endpoint with given path
 func (c Client) Get(resourcePath string) ([]byte, error) {
 	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath})
 	request, err := http.NewRequest("GET", requestURL.String(), nil)
@@ -63,6 +66,7 @@ func (c Client) Get(resourcePath string) ([]byte, error) {
 	return handleResponse(response)
 }
 
+// Delete data from an API endpoint with given path and query string
 func (c Client) Delete(resourcePath string, query map[string]string) error {
 	rawQuery := url.Values{}
 	for key, value := range query {
