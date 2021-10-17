@@ -1,6 +1,6 @@
 Form3 Take Home Exercise
 =====
-----
+
 ### Hello there :wave:!
 I just want to give a brief introduction and explain my background using Go.
 My name is Renato, I am from Brazil, currently living in Berlin Germany and working for HelloFresh for about 1 year and 4 months.
@@ -18,7 +18,49 @@ Cheers :beers:
 
 [![Test](https://github.com/renatoaraujo/form3-interview-accountapi/actions/workflows/test.yml/badge.svg)](https://github.com/renatoaraujo/form3-interview-accountapi/actions/workflows/test.yml)
 
-@TODO
+In order to use this library in your project you just need to import it using the following command:
+```bash
+$ go get github.com/renatoaraujo/form3-account-api-client@0.1.0
+```
+
+#### Accounts
+
+Import the module 
+
+```go
+import "renatoaraujo/form3-account-api-client/accounts"
+```
+
+To create, fetch or delete an account resource you need to initiate the client which depends on a http client
+
+```go
+httpClient, err := httputils.NewClient(&http.Client{
+    Timeout: time.Duration(60) * time.Second,
+}, "https://api.form3.tech")
+
+
+accountClient := accounts.NewClient(httpClient)
+```
+
+And finally just call action
+
+```go
+// generates a valid accounts.AccountData{} 
+accountData := &accounts.AccountData{}
+
+// create resource sending the account data and it will return an accounts.AccountData{} or an error
+created, err := accountClient.CreateResource(accountData)
+
+// generates an uuid for the account id
+accountID, _ := uuid.Parse("f199fe08-90b4-4756-9c1f-3a2352ea4933")
+
+// fetch resource and it will return an accounts.AccountData{} or an error
+fetched, err := accountClient.FetchResource(accountID)
+
+// and finally delete a resource, and it will return an error or nil
+err := accountClient.DeleteResource(accountID)
+
+```
 
 ## Testing
 
@@ -70,4 +112,10 @@ services using this library.
 
 ### Continuous Integration
 
-@TODO
+I decided to play around with GitHub Actions a bit so that I could provide a simple pipeline, but I just added one job 
+for unit tests and setup the badge to add in this README file.
+
+In a real life scenario I would probably add some support for the integration tests, together with an 
+automatic semver release based in the release tags.
+
+I will probably do it in the future for a learning experience, still in this repository.
