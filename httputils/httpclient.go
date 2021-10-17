@@ -49,6 +49,21 @@ func (c Client) Post(resourcePath string, payload []byte) ([]byte, error) {
 	return handleResponse(response)
 }
 
+func (c Client) Get(resourcePath string) ([]byte, error) {
+	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath})
+	request, err := http.NewRequest("GET", requestURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return handleResponse(response)
+}
+
 func handleResponse(response *http.Response) ([]byte, error) {
 	respBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -60,9 +75,9 @@ func handleResponse(response *http.Response) ([]byte, error) {
 	}
 
 	switch response.StatusCode {
-	case 201:
+	case 200, 201:
 		return respBody, nil
-	case 400, 409:
+	case 400, 404, 409:
 		respError := &responseError{}
 		err = json.Unmarshal(respBody, respError)
 		if err != nil || respError.ErrorMessage == "" {

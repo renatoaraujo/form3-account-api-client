@@ -129,6 +129,89 @@ func TestClientPost(t *testing.T) {
 	}
 }
 
+func TestClientGet(t *testing.T) {
+	tests := []struct {
+		name            string
+		httpClientSetup func(*mockHttpClient)
+		want            []byte
+		wantErr         bool
+	}{
+		{
+			name: "Successfully get data from the api response (status code 200)",
+			httpClientSetup: func(client *mockHttpClient) {
+				client.On("Do", mock.Anything).Return(
+					&http.Response{
+						StatusCode: 200,
+						Body: ioutil.NopCloser(
+							bytes.NewBufferString(
+								`{"data":"this is a valid json data"}`,
+							),
+						),
+					},
+					nil,
+				)
+			},
+			want:    []byte(`{"data":"this is a valid json data"}`),
+			wantErr: false,
+		},
+		{
+			name: "Failed to get data from the api response due a not found resource (status code 404)",
+			httpClientSetup: func(client *mockHttpClient) {
+				client.On("Do", mock.Anything).Return(
+					&http.Response{
+						StatusCode: 404,
+						Body: ioutil.NopCloser(
+							bytes.NewBufferString(
+								`{"error_message":"record xxx-xxx does not exist"}`,
+							),
+						),
+					},
+					nil,
+				)
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failed to get data from the api response due a bad request (status code 400)",
+			httpClientSetup: func(client *mockHttpClient) {
+				client.On("Do", mock.Anything).Return(
+					&http.Response{
+						StatusCode: 400,
+						Body: ioutil.NopCloser(
+							bytes.NewBufferString(
+								`{"error_message":"id is not a valid uuid"}`,
+							),
+						),
+					},
+					nil,
+				)
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			httpClientMock := &mockHttpClient{}
+			if tt.httpClientSetup != nil {
+				tt.httpClientSetup(httpClientMock)
+			}
+
+			client, err := NewClient(httpClientMock, "http://this-is.fake")
+			require.NoError(t, err)
+
+			got, err := client.Get("/a-valid-path")
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tt.want, got)
+			mock.AssertExpectationsForObjects(t, httpClientMock)
+		})
+	}
+}
+
 func TestHandleResponse(t *testing.T) {
 	tests := []struct {
 		name     string
