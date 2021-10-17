@@ -11,6 +11,7 @@ type AccountData struct {
 	Version        int                `json:"version,omitempty"`
 }
 
+// AccountAttributes represents the detail attributes of the account
 type AccountAttributes struct {
 	AccountClassification   *string  `json:"account_classification,omitempty"`
 	AccountMatchingOptOut   *bool    `json:"account_matching_opt_out,omitempty"`
