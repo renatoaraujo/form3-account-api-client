@@ -1,9 +1,13 @@
 package integration_tests
 
 import (
+	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"renatoaraujo/form3-account-api-client/accounts"
 	"renatoaraujo/form3-account-api-client/httputils"
@@ -18,6 +22,26 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func TestMain(m *testing.M) {
+	parsedUri, err := url.ParseRequestURI(getEnv("API_BASE_URI", "http://localhost:8080"))
+	if err != nil {
+		panic("failed to parse the base uri, please check your environment variables")
+	}
+
+	log.Println("checking if the host is available")
+	timeout := 1 * time.Second
+	conn, err := net.DialTimeout("tcp", parsedUri.Host, timeout)
+	if err != nil {
+		log.Println(err)
+		log.Println("host unreachable, skipping functional tests")
+		os.Exit(0)
+	}
+	defer conn.Close()
+
+	exitVal := m.Run()
+	os.Exit(exitVal)
 }
 
 func clientSetup() accounts.Client {
