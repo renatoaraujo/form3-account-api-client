@@ -276,7 +276,11 @@ func TestClientDelete(t *testing.T) {
 			client, err := NewClient(httpClientMock, "http://this-is.fake")
 			require.NoError(t, err)
 
-			err = client.Delete("/a-valid-path")
+			query := map[string]string{
+				"version": "0",
+			}
+
+			err = client.Delete("/a-valid-path", query)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

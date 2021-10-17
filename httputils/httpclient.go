@@ -33,9 +33,9 @@ func NewClient(client httpClient, baseURI string) (*Client, error) {
 	}, nil
 }
 
-func (c Client) Post(resourcePath string, payload []byte) ([]byte, error) {
+func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath})
-	request, err := http.NewRequest("POST", requestURL.String(), bytes.NewBuffer(payload))
+	request, err := http.NewRequest("POST", requestURL.String(), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +63,12 @@ func (c Client) Get(resourcePath string) ([]byte, error) {
 	return handleResponse(response)
 }
 
-func (c Client) Delete(resourcePath string) error {
-	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath})
+func (c Client) Delete(resourcePath string, query map[string]string) error {
+	rawQuery := url.Values{}
+	for key, value := range query {
+		rawQuery.Add(key, value)
+	}
+	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath, RawQuery: rawQuery.Encode()})
 	request, err := http.NewRequest("DELETE", requestURL.String(), nil)
 	if err != nil {
 		return err
