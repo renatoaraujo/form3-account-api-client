@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -16,6 +16,7 @@ func TestClient(t *testing.T) {
 	tests := []struct {
 		name    string
 		baseURL string
+		want    *Client
 		wantErr bool
 	}{
 		{
@@ -25,22 +26,29 @@ func TestClient(t *testing.T) {
 		},
 		{
 			name:    "Successfully creates new client",
-			baseURL: "http://valid-url.com",
+			baseURL: "https://valid-url.com",
+			want: &Client{
+				httpClient: http.DefaultClient,
+				baseURL: url.URL{
+					Scheme: "https",
+					Host:   "valid-url.com",
+				},
+			},
 			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewClient(&http.Client{
-				Timeout: time.Duration(30) * time.Second,
-			}, tt.baseURL)
+			got, err := NewClient(http.DefaultClient, tt.baseURL)
 
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 			}
+
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -54,41 +62,7 @@ func TestClientPost(t *testing.T) {
 		wantErr         bool
 	}{
 		{
-			name: "Failed when trying to post to api with conflict response (status code 409)",
-			httpClientSetup: func(client *mockHttpClient) {
-				client.On("Do", mock.Anything).Return(
-					&http.Response{
-						StatusCode: 409,
-						Body: ioutil.NopCloser(
-							bytes.NewBufferString(
-								`{"error_message":"Account cannot be created as it violates a duplicate constraint"}`,
-							),
-						),
-					},
-					nil,
-				)
-			},
-			wantErr: true,
-		},
-		{
-			name: "Failed when trying to post to api with bad request response (status code 400)",
-			httpClientSetup: func(client *mockHttpClient) {
-				client.On("Do", mock.Anything).Return(
-					&http.Response{
-						StatusCode: 400,
-						Body: ioutil.NopCloser(
-							bytes.NewBufferString(
-								`{"error_message":"validation failure"}`,
-							),
-						),
-					},
-					nil,
-				)
-			},
-			wantErr: true,
-		},
-		{
-			name: "Success when posting to api with created response (status code 201)",
+			name: "Successfully perform the post request and receive 201 status code with a valid json data in body",
 			httpClientSetup: func(client *mockHttpClient) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
@@ -104,6 +78,40 @@ func TestClientPost(t *testing.T) {
 			},
 			want:    []byte(`{"data":"some valid json data"}`),
 			wantErr: false,
+		},
+		{
+			name: "Failed perform the post request and receive 409 status code with a valid json data in body",
+			httpClientSetup: func(client *mockHttpClient) {
+				client.On("Do", mock.Anything).Return(
+					&http.Response{
+						StatusCode: 409,
+						Body: ioutil.NopCloser(
+							bytes.NewBufferString(
+								`{"error_message":"it violates a duplicate constraint"}`,
+							),
+						),
+					},
+					nil,
+				)
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failed perform the post request and receive 400 status code with a valid json data in body",
+			httpClientSetup: func(client *mockHttpClient) {
+				client.On("Do", mock.Anything).Return(
+					&http.Response{
+						StatusCode: 400,
+						Body: ioutil.NopCloser(
+							bytes.NewBufferString(
+								`{"error_message":"validation failure"}`,
+							),
+						),
+					},
+					nil,
+				)
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -137,7 +145,7 @@ func TestClientGet(t *testing.T) {
 		wantErr         bool
 	}{
 		{
-			name: "Successfully get data from the api response (status code 200)",
+			name: "Successfully perform the get request and receive 200 status code with a valid json data in body",
 			httpClientSetup: func(client *mockHttpClient) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
@@ -155,7 +163,7 @@ func TestClientGet(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Failed to get data from the api response due a not found resource (status code 404)",
+			name: "Failed to perform the get request and receive 404 status code with a valid json data in body",
 			httpClientSetup: func(client *mockHttpClient) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
@@ -172,7 +180,7 @@ func TestClientGet(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Failed to get data from the api response due a bad request (status code 400)",
+			name: "Failed perform the get request and receive 400 status code with a valid json data in body",
 			httpClientSetup: func(client *mockHttpClient) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
@@ -219,7 +227,7 @@ func TestClientDelete(t *testing.T) {
 		wantErr         bool
 	}{
 		{
-			name: "Successfully perform the delete request (status code 204)",
+			name: "Successfully perform the delete request and receive 204 status code with an empty body",
 			httpClientSetup: func(client *mockHttpClient) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
@@ -232,7 +240,7 @@ func TestClientDelete(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Failed to perform the delete request due a bad request (status code 400)",
+			name: "Failed to perform the delete request and receive 400 status code with an empty body",
 			httpClientSetup: func(client *mockHttpClient) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
@@ -245,7 +253,7 @@ func TestClientDelete(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Failed to perform the delete request due a not found resource",
+			name: "Failed to perform the delete request and receive 404 status code with an empty body",
 			httpClientSetup: func(client *mockHttpClient) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
@@ -288,21 +296,9 @@ func TestHandleResponse(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name: "Failed due invalid json format in the response body",
+			name: "Successfully return the data with the 2xx status code",
 			response: &http.Response{
-				StatusCode: 201,
-				Body: ioutil.NopCloser(
-					bytes.NewBufferString(
-						`this is an invalid json`,
-					),
-				),
-			},
-			wantErr: true,
-		},
-		{
-			name: "Successfully return the data with the status code create (status code 201)",
-			response: &http.Response{
-				StatusCode: 201,
+				StatusCode: 200,
 				Body: ioutil.NopCloser(
 					bytes.NewBufferString(
 						`{"data": "this is a valid json format"}`,
@@ -313,36 +309,24 @@ func TestHandleResponse(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Failed to return data with status code conflict (status code 409)",
+			name: "Failed because the response doesn't have a valid json data",
 			response: &http.Response{
-				StatusCode: 409,
+				StatusCode: 200,
 				Body: ioutil.NopCloser(
 					bytes.NewBufferString(
-						`{"error_message": "it failed because of conflict"}`,
+						`this is an invalid json`,
 					),
 				),
 			},
 			wantErr: true,
 		},
 		{
-			name: "Failed to return data with status code bad request (status code 400)",
+			name: "Failed to return the data with 4xx code",
 			response: &http.Response{
 				StatusCode: 400,
 				Body: ioutil.NopCloser(
 					bytes.NewBufferString(
-						`{"error_message": "it failed because of a bad request (maybe validation)"}`,
-					),
-				),
-			},
-			wantErr: true,
-		},
-		{
-			name: "Failed to return data with status code bad request with a empty body (status code 400)",
-			response: &http.Response{
-				StatusCode: 400,
-				Body: ioutil.NopCloser(
-					bytes.NewBufferString(
-						`{"data": "this should not be data"}`,
+						`{"error_message": "it failed"}`,
 					),
 				),
 			},
