@@ -9,9 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	basePath = "/v1/organisation/accounts"
-)
+const basePath = "/v1/organisation/accounts"
 
 type httpUtils interface {
 	Delete(resourcePath string, query map[string]string) error
@@ -19,6 +17,7 @@ type httpUtils interface {
 	Post(resourcePath string, body []byte) ([]byte, error)
 }
 
+// Client is the representation of the client to interact with the account section on form3 api see https://api-docs.form3.tech/api.html#organisation-accounts
 type Client struct {
 	http httpUtils
 }
