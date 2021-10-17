@@ -3,7 +3,6 @@ package httputils
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -85,27 +84,24 @@ func (c Client) Delete(resourcePath string) error {
 }
 
 func handleResponse(response *http.Response) ([]byte, error) {
-	respBody, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("%w; failed to read response body", err)
-	}
-
-	if !json.Valid(respBody) {
-		return nil, errors.New("invalid json format in the response body")
-	}
-
-	switch response.StatusCode {
-	case 200, 201, 204:
-		return respBody, nil
-	case 400, 404, 409:
-		respError := &responseError{}
-		err = json.Unmarshal(respBody, respError)
-		if err != nil || respError.ErrorMessage == "" {
-			return nil, fmt.Errorf("%w; failed to unmarshal response data", err)
+	if response.StatusCode >= 200 && response.StatusCode < 299 {
+		respBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, fmt.Errorf("%w; failed to read response body", err)
 		}
 
-		return nil, errors.New(respError.ErrorMessage)
-	default:
-		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
+		return respBody, nil
 	}
+
+	if response.StatusCode >= 400 {
+		var errRes ResponseError
+		_ = json.NewDecoder(response.Body).Decode(&errRes)
+
+		if errRes.StatusCode == 0 {
+			errRes.StatusCode = response.StatusCode
+		}
+		return nil, &errRes
+	}
+
+	return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 }

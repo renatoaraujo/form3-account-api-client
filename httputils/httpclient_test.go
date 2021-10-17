@@ -290,10 +290,11 @@ func TestClientDelete(t *testing.T) {
 
 func TestHandleResponse(t *testing.T) {
 	tests := []struct {
-		name     string
-		response *http.Response
-		want     []byte
-		wantErr  bool
+		name       string
+		response   *http.Response
+		want       []byte
+		wantErr    bool
+		wantErrMsg string
 	}{
 		{
 			name: "Successfully return the data with the 2xx status code",
@@ -309,18 +310,6 @@ func TestHandleResponse(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Failed because the response doesn't have a valid json data",
-			response: &http.Response{
-				StatusCode: 200,
-				Body: ioutil.NopCloser(
-					bytes.NewBufferString(
-						`this is an invalid json`,
-					),
-				),
-			},
-			wantErr: true,
-		},
-		{
 			name: "Failed to return the data with 4xx code",
 			response: &http.Response{
 				StatusCode: 400,
@@ -330,19 +319,35 @@ func TestHandleResponse(t *testing.T) {
 					),
 				),
 			},
-			wantErr: true,
+			wantErr:    true,
+			wantErrMsg: "api failure with status code 400 and message: it failed",
 		},
 		{
-			name: "Failed to return data with status i am a tea pot (status code 418)",
+			name: "Failed to return the data with 5xx code and empty body",
 			response: &http.Response{
-				StatusCode: 418,
-				Body: ioutil.NopCloser(
-					bytes.NewBufferString(
-						`{"data": "I am a tea pot"}`,
-					),
-				),
+				StatusCode: 500,
+				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 			},
-			wantErr: true,
+			wantErr:    true,
+			wantErrMsg: "api failure with status code 500 and no message received",
+		},
+		{
+			name: "Failed to return the data with 1xx code and empty body",
+			response: &http.Response{
+				StatusCode: 100,
+				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+			},
+			wantErr:    true,
+			wantErrMsg: "unexpected status code 100",
+		},
+		{
+			name: "Failed to return the data with 3xx code and empty body",
+			response: &http.Response{
+				StatusCode: 301,
+				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+			},
+			wantErr:    true,
+			wantErrMsg: "unexpected status code 301",
 		},
 	}
 
@@ -351,6 +356,7 @@ func TestHandleResponse(t *testing.T) {
 			got, err := handleResponse(tt.response)
 			if tt.wantErr {
 				require.Error(t, err)
+				assert.Equal(t, tt.wantErrMsg, err.Error())
 			} else {
 				require.NoError(t, err)
 			}
