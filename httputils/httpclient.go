@@ -64,6 +64,26 @@ func (c Client) Get(resourcePath string) ([]byte, error) {
 	return handleResponse(response)
 }
 
+func (c Client) Delete(resourcePath string) error {
+	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath})
+	request, err := http.NewRequest("DELETE", requestURL.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return err
+	}
+
+	_, err = handleResponse(response)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func handleResponse(response *http.Response) ([]byte, error) {
 	respBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -75,7 +95,7 @@ func handleResponse(response *http.Response) ([]byte, error) {
 	}
 
 	switch response.StatusCode {
-	case 200, 201:
+	case 200, 201, 204:
 		return respBody, nil
 	case 400, 404, 409:
 		respError := &responseError{}

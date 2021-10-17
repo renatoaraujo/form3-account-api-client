@@ -212,6 +212,74 @@ func TestClientGet(t *testing.T) {
 	}
 }
 
+func TestClientDelete(t *testing.T) {
+	tests := []struct {
+		name            string
+		httpClientSetup func(*mockHttpClient)
+		wantErr         bool
+	}{
+		{
+			name: "Successfully perform the delete request (status code 204)",
+			httpClientSetup: func(client *mockHttpClient) {
+				client.On("Do", mock.Anything).Return(
+					&http.Response{
+						StatusCode: 204,
+						Body:       ioutil.NopCloser(bytes.NewBufferString("{}")),
+					},
+					nil,
+				)
+			},
+			wantErr: false,
+		},
+		{
+			name: "Failed to perform the delete request due a bad request (status code 400)",
+			httpClientSetup: func(client *mockHttpClient) {
+				client.On("Do", mock.Anything).Return(
+					&http.Response{
+						StatusCode: 400,
+						Body:       ioutil.NopCloser(bytes.NewBufferString("{}")),
+					},
+					nil,
+				)
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failed to perform the delete request due a not found resource",
+			httpClientSetup: func(client *mockHttpClient) {
+				client.On("Do", mock.Anything).Return(
+					&http.Response{
+						StatusCode: 404,
+						Body:       ioutil.NopCloser(bytes.NewBufferString("{}")),
+					},
+					nil,
+				)
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			httpClientMock := &mockHttpClient{}
+			if tt.httpClientSetup != nil {
+				tt.httpClientSetup(httpClientMock)
+			}
+
+			client, err := NewClient(httpClientMock, "http://this-is.fake")
+			require.NoError(t, err)
+
+			err = client.Delete("/a-valid-path")
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			mock.AssertExpectationsForObjects(t, httpClientMock)
+		})
+	}
+}
+
 func TestHandleResponse(t *testing.T) {
 	tests := []struct {
 		name     string
