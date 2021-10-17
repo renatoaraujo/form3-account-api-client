@@ -23,6 +23,7 @@ type Client struct {
 	http httpUtils
 }
 
+// NewClient creates a new account client instance with a http utils
 func NewClient(httpUtils httpUtils) Client {
 	return Client{http: httpUtils}
 }
@@ -36,6 +37,7 @@ func extractAccountDataFromResponse(response []byte) (*AccountData, error) {
 	return responsePayload.Data, nil
 }
 
+// CreateResource creates a new account resource see https://api-docs.form3.tech/api.html#organisation-accounts-create
 func (client *Client) CreateResource(accountData *AccountData) (*AccountData, error) {
 	requestPayload, err := json.Marshal(&payload{
 		Data: accountData,
@@ -57,6 +59,7 @@ func (client *Client) CreateResource(accountData *AccountData) (*AccountData, er
 	return responseAccountData, nil
 }
 
+// FetchResource fetches an account resource by an account id see https://api-docs.form3.tech/api.html#organisation-accounts-fetch
 func (client *Client) FetchResource(accountID uuid.UUID) (*AccountData, error) {
 	resourcePath := fmt.Sprintf("%s/%s", basePath, accountID.String())
 	response, err := client.http.Get(resourcePath)
@@ -72,6 +75,7 @@ func (client *Client) FetchResource(accountID uuid.UUID) (*AccountData, error) {
 	return responseAccountData, nil
 }
 
+// DeleteResource deletes an account resource by an account id and version see https://api-docs.form3.tech/api.html#organisation-accounts-delete
 func (client *Client) DeleteResource(accountID uuid.UUID, version int) error {
 	resourcePath := fmt.Sprintf("%s/%s", basePath, accountID.String())
 	query := map[string]string{
