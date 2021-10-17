@@ -5,4 +5,4 @@ COPY . .
 
 RUN go mod tidy
 
-ENTRYPOINT  ["go", "test", "-v", "./accounts", "./httputils", "-coverprofile", "cov.out"]
+ENTRYPOINT  ["go", "test", "-v", "./accounts", "./httputils", "./integration_tests", "-coverprofile", "cov.out"]

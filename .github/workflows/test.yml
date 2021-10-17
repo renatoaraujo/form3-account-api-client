@@ -15,4 +15,4 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Test
-        run: go test ./accounts ./httputils -v -coverprofile coverage.out
+        run: go test ./accounts ./httputils ./integration_tests -v -coverprofile coverage.out
