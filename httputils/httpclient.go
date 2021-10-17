@@ -13,6 +13,7 @@ type httpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// Client is the representation of the client to perform some http operations
 type Client struct {
 	httpClient httpClient
 	baseURL    url.URL
