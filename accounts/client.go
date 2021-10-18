@@ -38,7 +38,7 @@ func NewClient(httpUtils httpUtils) Client {
 
 // CreateResource creates a new account resource see https://api-docs.form3.tech/api.html#organisation-accounts-create
 func (client *Client) CreateResource(accountData *AccountData) (*AccountData, error) {
-	requestPayload, err := client.payloadMarshaller(&payload{
+	requestPayload, err := client.payloadMarshaller(&Payload{
 		Data: accountData,
 	})
 	if err != nil {
@@ -50,7 +50,7 @@ func (client *Client) CreateResource(accountData *AccountData) (*AccountData, er
 		return nil, fmt.Errorf("%w; unable to create resource", err)
 	}
 
-	responsePayload := &payload{}
+	responsePayload := &Payload{}
 	if err := client.respUnmarshaller(response, responsePayload); err != nil {
 		return nil, errors.New("failed to unmarshal response data")
 	}
@@ -66,7 +66,7 @@ func (client *Client) FetchResource(accountID uuid.UUID) (*AccountData, error) {
 		return nil, fmt.Errorf("%w; unable to fetch resource", err)
 	}
 
-	responsePayload := &payload{}
+	responsePayload := &Payload{}
 	if err := client.respUnmarshaller(response, responsePayload); err != nil {
 		return nil, errors.New("failed to unmarshal response data")
 	}

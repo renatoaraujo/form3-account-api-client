@@ -1,6 +1,9 @@
 package integration_tests
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/url"
@@ -45,31 +48,42 @@ func TestMain(m *testing.M) {
 
 func clientSetup() accounts.Client {
 	httpClient, _ := httputils.NewClient(getEnv("API_BASE_URI", "https://api.form3.tech"), 15)
+
 	return accounts.NewClient(httpClient)
 }
 
-func createAccountResource(accountID uuid.UUID) (*accounts.AccountData, error) {
+func createAccountResource(accountData *accounts.AccountData) (*accounts.AccountData, error) {
 	client := clientSetup()
-	accountData := getAccountData(accountID)
 
 	return client.CreateResource(accountData)
 }
 
-func getAccountData(accountID uuid.UUID) *accounts.AccountData {
-	return &accounts.AccountData{
-		Attributes: &accounts.AccountAttributes{
-			BankID:       "400300",
-			BankIDCode:   "GBDSC",
-			BaseCurrency: "GBP",
-			Bic:          "NWBKGB22",
-			Country:      &[]string{"GB"}[0],
-			Name:         []string{"john doe"},
-		},
-		ID:             accountID.String(),
-		OrganisationID: "eb0bd6f5-c3f5-44b2-b677-acd23cdde73c",
-		Type:           "accounts",
-		Version:        0,
+func getCreateAccountData(accountID uuid.UUID) *accounts.AccountData {
+	accountData := loadAccountDataFromFileWithCustomID("./testdata/account_create_data.json", accountID)
+
+	return accountData
+}
+
+func getFetchAccountData(accountID uuid.UUID) *accounts.AccountData {
+	accountData := loadAccountDataFromFileWithCustomID("./testdata/account_fetch_data.json", accountID)
+
+	return accountData
+}
+
+func loadAccountDataFromFileWithCustomID(file string, accountID uuid.UUID) *accounts.AccountData {
+	raw, err := ioutil.ReadFile(file)
+	if err != nil {
+		panic("failed to load the test data file")
 	}
+
+	var payload accounts.Payload
+	if err = json.Unmarshal(raw, &payload); err != nil {
+		panic("failed to unmarshal the test data file")
+	}
+
+	payload.Data.ID = accountID.String()
+
+	return payload.Data
 }
 
 func TestCreateAccount(t *testing.T) {
@@ -83,10 +97,11 @@ func TestCreateAccount(t *testing.T) {
 				accountID, err := uuid.NewUUID()
 				require.NoError(t, err)
 
-				accountData, err := createAccountResource(accountID)
+				expectedAccountData := getCreateAccountData(accountID)
+				accountData, err := createAccountResource(expectedAccountData)
 				require.NoError(t, err)
 
-				assert.Equal(t, accountID.String(), accountData.ID)
+				assert.Equal(t, expectedAccountData, accountData)
 			},
 		},
 		{
@@ -95,11 +110,14 @@ func TestCreateAccount(t *testing.T) {
 				accountID, err := uuid.NewUUID()
 				require.NoError(t, err)
 
-				_, err = createAccountResource(accountID)
+				_, err = createAccountResource(getCreateAccountData(accountID))
 				require.NoError(t, err)
 
-				_, err = createAccountResource(accountID)
+				_, err = createAccountResource(getCreateAccountData(accountID))
 				require.Error(t, err)
+				require.EqualError(t, err,
+					"api failure with status code 409 and message: Account cannot be created as it violates a duplicate constraint; unable to create resource",
+				)
 			},
 		},
 		{
@@ -132,13 +150,36 @@ func TestFetchAccount(t *testing.T) {
 				accountID, err := uuid.NewUUID()
 				require.NoError(t, err)
 
-				createdAccountData, err := createAccountResource(accountID)
+				_, err = createAccountResource(getCreateAccountData(accountID))
 				require.NoError(t, err)
 
-				assert.Equal(t, getAccountData(accountID), createdAccountData)
+				actual, err := client.FetchResource(accountID)
+				expected := getFetchAccountData(accountID)
 
-				fetchedAccountData, err := client.FetchResource(accountID)
-				assert.Equal(t, getAccountData(accountID), fetchedAccountData)
+				assert.Equal(t, expected.ID, actual.ID)
+				assert.Equal(t, expected.OrganisationID, actual.OrganisationID)
+				assert.Equal(t, expected.Type, actual.Type)
+				assert.Equal(t, expected.Version, actual.Version)
+				assert.Equal(t, expected.Attributes.AccountClassification, actual.Attributes.AccountClassification)
+				assert.Equal(t, expected.Attributes.AccountMatchingOptOut, actual.Attributes.AccountMatchingOptOut)
+				assert.Equal(t, expected.Attributes.AccountNumber, actual.Attributes.AccountNumber)
+				assert.Equal(t, expected.Attributes.AccountQualifier, actual.Attributes.AccountQualifier)
+				assert.Equal(t, expected.Attributes.AlternativeNames, actual.Attributes.AlternativeNames)
+				assert.Equal(t, expected.Attributes.BankID, actual.Attributes.BankID)
+				assert.Equal(t, expected.Attributes.BankIDCode, actual.Attributes.BankIDCode)
+				assert.Equal(t, expected.Attributes.BaseCurrency, actual.Attributes.BaseCurrency)
+				assert.Equal(t, expected.Attributes.Bic, actual.Attributes.Bic)
+				assert.Equal(t, expected.Attributes.CustomerID, actual.Attributes.CustomerID)
+				assert.Equal(t, expected.Attributes.Country, actual.Attributes.Country)
+				assert.Equal(t, expected.Attributes.Iban, actual.Attributes.Iban)
+				assert.Equal(t, expected.Attributes.JointAccount, actual.Attributes.JointAccount)
+				assert.Equal(t, expected.Attributes.Name, actual.Attributes.Name)
+				assert.Equal(t, expected.Attributes.ProcessingService, actual.Attributes.ProcessingService)
+				assert.Equal(t, expected.Attributes.ReferenceMask, actual.Attributes.ReferenceMask)
+				assert.Equal(t, expected.Attributes.SecondaryIdentification, actual.Attributes.SecondaryIdentification)
+				assert.Equal(t, expected.Attributes.Switched, actual.Attributes.Switched)
+				assert.Equal(t, expected.Attributes.UserDefinedInformation, actual.Attributes.UserDefinedInformation)
+				assert.Equal(t, expected.Attributes.ValidationType, actual.Attributes.ValidationType)
 			},
 		},
 		{
@@ -150,6 +191,9 @@ func TestFetchAccount(t *testing.T) {
 
 				_, err = client.FetchResource(accountID)
 				require.Error(t, err)
+				require.EqualError(t, err,
+					fmt.Sprintf("api failure with status code 404 and message: record %s does not exist; unable to fetch resource", accountID.String()),
+				)
 			},
 		},
 	}
@@ -170,11 +214,18 @@ func TestDeleteAccount(t *testing.T) {
 				accountID, err := uuid.NewUUID()
 				require.NoError(t, err)
 
-				createdAccountData, err := createAccountResource(accountID)
+				accountData := getCreateAccountData(accountID)
+				createdAccountData, err := createAccountResource(accountData)
 				require.NoError(t, err)
 
 				err = client.DeleteResource(accountID, createdAccountData.Version)
 				require.NoError(t, err)
+
+				_, err = client.FetchResource(accountID)
+				require.Error(t, err)
+				require.EqualError(t, err,
+					fmt.Sprintf("api failure with status code 404 and message: record %s does not exist; unable to fetch resource", accountID.String()),
+				)
 			},
 		},
 		{
