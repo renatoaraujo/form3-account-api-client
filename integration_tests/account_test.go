@@ -186,7 +186,7 @@ func TestDeleteAccount(t *testing.T) {
 
 				err = client.DeleteResource(accountID, 0)
 				require.Error(t, err)
-				require.EqualError(t, err, "api failure with status code 404 and no message received; unable to delete resource")
+				require.EqualError(t, err, "api failure with status code 404 and message: not found; unable to delete resource")
 			},
 		},
 	}

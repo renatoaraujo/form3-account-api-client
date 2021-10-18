@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -16,9 +17,16 @@ type httpClient interface {
 
 // Client is the representation of the client to perform some http operations
 type Client struct {
-	httpClient httpClient
-	baseURI    *url.URL
+	httpClient    httpClient
+	baseURI       url.URL
+	readBody      bodyReader
+	unMarshalResp respUnmarshaller
+	reqCreator    reqCreator
 }
+
+type bodyReader func(io.Reader) ([]byte, error)
+type respUnmarshaller func([]byte, interface{}) error
+type reqCreator func(method, url string, body io.Reader) (*http.Request, error)
 
 // NewClient creates a new http client with the base URI and the timeout for the requests made by this client
 func NewClient(baseURI string, timeout int) (*Client, error) {
@@ -33,30 +41,55 @@ func NewClient(baseURI string, timeout int) (*Client, error) {
 
 	return &Client{
 		httpClient: client,
-		baseURI:    parsedBaseURI,
+		baseURI: url.URL{
+			Scheme: parsedBaseURI.Scheme,
+			Host:   parsedBaseURI.Host,
+		},
+		readBody:      ioutil.ReadAll,
+		unMarshalResp: json.Unmarshal,
+		reqCreator:    http.NewRequest,
 	}, nil
 }
 
 // Post data to an API endpoint with given path and body content
 func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 	requestURL := c.baseURI.ResolveReference(&url.URL{Path: resourcePath})
-	request, err := http.NewRequest("POST", requestURL.String(), bytes.NewBuffer(body))
+	request, err := c.reqCreator(http.MethodPost, requestURL.String(), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w; failed to post data", err)
+	}
+	defer response.Body.Close()
+
+	respBody, err := c.readBody(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("%w; failed to read response body", err)
+	}
+	if response.StatusCode == http.StatusCreated {
+		return respBody, nil
 	}
 
-	return handleResponse(response)
+	if response.StatusCode == http.StatusConflict || response.StatusCode == http.StatusBadRequest {
+		var errRes ResponseError
+		if err := c.unMarshalResp(respBody, &errRes); err != nil {
+			return nil, err
+		}
+
+		errRes.StatusCode = response.StatusCode
+		return nil, &errRes
+	}
+
+	return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 }
 
 // Get data from an API endpoint with given path
 func (c Client) Get(resourcePath string) ([]byte, error) {
 	requestURL := c.baseURI.ResolveReference(&url.URL{Path: resourcePath})
-	request, err := http.NewRequest("GET", requestURL.String(), nil)
+	request, err := c.reqCreator(http.MethodGet, requestURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +98,28 @@ func (c Client) Get(resourcePath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
 
-	return handleResponse(response)
+	respBody, err := c.readBody(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("%w; failed to read response body", err)
+	}
+
+	if response.StatusCode == http.StatusOK {
+		return respBody, nil
+	}
+
+	if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusBadRequest {
+		var errRes ResponseError
+		if err := c.unMarshalResp(respBody, &errRes); err != nil {
+			return nil, err
+		}
+
+		errRes.StatusCode = response.StatusCode
+		return nil, &errRes
+	}
+
+	return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 }
 
 // Delete data from an API endpoint with given path and query string
@@ -76,7 +129,7 @@ func (c Client) Delete(resourcePath string, query map[string]string) error {
 		rawQuery.Add(key, value)
 	}
 	requestURL := c.baseURI.ResolveReference(&url.URL{Path: resourcePath, RawQuery: rawQuery.Encode()})
-	request, err := http.NewRequest("DELETE", requestURL.String(), nil)
+	request, err := c.reqCreator(http.MethodDelete, requestURL.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -86,33 +139,27 @@ func (c Client) Delete(resourcePath string, query map[string]string) error {
 		return err
 	}
 
-	_, err = handleResponse(response)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func handleResponse(response *http.Response) ([]byte, error) {
-	if response.StatusCode >= 200 && response.StatusCode < 299 {
-		respBody, err := ioutil.ReadAll(response.Body)
+	switch response.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusBadRequest:
+		respBody, err := c.readBody(response.Body)
 		if err != nil {
-			return nil, fmt.Errorf("%w; failed to read response body", err)
+			return fmt.Errorf("%w; failed to read response body", err)
 		}
-
-		return respBody, nil
-	}
-
-	if response.StatusCode >= 400 {
 		var errRes ResponseError
-		_ = json.NewDecoder(response.Body).Decode(&errRes)
-
-		if errRes.StatusCode == 0 {
-			errRes.StatusCode = response.StatusCode
+		if err := c.unMarshalResp(respBody, &errRes); err != nil {
+			return err
 		}
-		return nil, &errRes
-	}
 
-	return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
+		errRes.StatusCode = response.StatusCode
+		return &errRes
+	case http.StatusNotFound:
+		return &ResponseError{
+			ErrorMessage: "not found",
+			StatusCode:   404,
+		}
+	default:
+		return fmt.Errorf("unexpected status code %d", response.StatusCode)
+	}
 }

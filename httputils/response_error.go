@@ -9,8 +9,5 @@ type ResponseError struct {
 }
 
 func (err *ResponseError) Error() string {
-	if err.ErrorMessage == "" {
-		return fmt.Sprintf("api failure with status code %d and no message received", err.StatusCode)
-	}
 	return fmt.Sprintf("api failure with status code %d and message: %s", err.StatusCode, err.ErrorMessage)
 }
