@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		panic("failed to parse the base uri, please check your environment variables")
 	}
 
-	log.Println("checking if the host is available")
+	log.Println("checking if the host is available, this is to prevent running the tests without running the docker")
 	timeout := time.Duration(1) * time.Second
 	conn, err := net.DialTimeout("tcp", parsedUri.Host, timeout)
 	if err != nil {
