@@ -17,28 +17,28 @@ type httpUtils interface {
 	Post(resourcePath string, body []byte) ([]byte, error)
 }
 
+type respUnmarshaller func([]byte, interface{}) error
+type bodyMarshaller func(v interface{}) ([]byte, error)
+
 // Client is the representation of the client to interact with the account section on form3 api see https://api-docs.form3.tech/api.html#organisation-accounts
 type Client struct {
-	http httpUtils
+	http              httpUtils
+	respUnmarshaller  respUnmarshaller
+	payloadMarshaller bodyMarshaller
 }
 
 // NewClient creates a new account client instance with a http utils
 func NewClient(httpUtils httpUtils) Client {
-	return Client{http: httpUtils}
-}
-
-func extractAccountDataFromResponse(response []byte) (*AccountData, error) {
-	responsePayload := &payload{}
-	if err := json.Unmarshal(response, responsePayload); err != nil {
-		return nil, errors.New("failed to unmarshal response data")
+	return Client{
+		http:              httpUtils,
+		respUnmarshaller:  json.Unmarshal,
+		payloadMarshaller: json.Marshal,
 	}
-
-	return responsePayload.Data, nil
 }
 
 // CreateResource creates a new account resource see https://api-docs.form3.tech/api.html#organisation-accounts-create
 func (client *Client) CreateResource(accountData *AccountData) (*AccountData, error) {
-	requestPayload, err := json.Marshal(&payload{
+	requestPayload, err := client.payloadMarshaller(&payload{
 		Data: accountData,
 	})
 	if err != nil {
@@ -50,12 +50,12 @@ func (client *Client) CreateResource(accountData *AccountData) (*AccountData, er
 		return nil, fmt.Errorf("%w; unable to create resource", err)
 	}
 
-	responseAccountData, err := extractAccountDataFromResponse(response)
-	if err != nil {
-		return nil, fmt.Errorf("%w; failed to extract account data after successful account creation", err)
+	responsePayload := &payload{}
+	if err := client.respUnmarshaller(response, responsePayload); err != nil {
+		return nil, errors.New("failed to unmarshal response data")
 	}
 
-	return responseAccountData, nil
+	return responsePayload.Data, nil
 }
 
 // FetchResource fetches an account resource by an account id see https://api-docs.form3.tech/api.html#organisation-accounts-fetch
@@ -66,12 +66,12 @@ func (client *Client) FetchResource(accountID uuid.UUID) (*AccountData, error) {
 		return nil, fmt.Errorf("%w; unable to fetch resource", err)
 	}
 
-	responseAccountData, err := extractAccountDataFromResponse(response)
-	if err != nil {
-		return nil, fmt.Errorf("%w; unable to extract the fetched data from the response", err)
+	responsePayload := &payload{}
+	if err := client.respUnmarshaller(response, responsePayload); err != nil {
+		return nil, errors.New("failed to unmarshal response data")
 	}
 
-	return responseAccountData, nil
+	return responsePayload.Data, nil
 }
 
 // DeleteResource deletes an account resource by an account id and version see https://api-docs.form3.tech/api.html#organisation-accounts-delete

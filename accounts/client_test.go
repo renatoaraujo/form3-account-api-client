@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"testing"
@@ -11,73 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExtractAccountDataFromResponse(t *testing.T) {
-	tests := []struct {
-		name        string
-		response    []byte
-		accountData AccountData
-		wantErr     bool
-	}{
-		{
-			name:     "Failed to convert an invalid json data format from the response",
-			response: []byte("this is an invalid response data"),
-			wantErr:  true,
-		},
-		{
-			name:     "Successfully converts a valid response data format and returns an account data",
-			response: loadTestFile("./testdata/api_response.json"),
-			accountData: AccountData{
-				Attributes: &AccountAttributes{
-					BankID:       "400300",
-					BankIDCode:   "GBDSC",
-					BaseCurrency: "GBP",
-					Bic:          "NWBKGB22",
-					Country:      &[]string{"GB"}[0],
-					Name:         []string{"john doe"},
-				},
-				ID:             "ad27e265-9605-4b4b-a0e5-3003ea9cc4dc",
-				OrganisationID: "eb0bd6f5-c3f5-44b2-b677-acd23cdde73c",
-				Type:           "accounts",
-				Version:        12,
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			accountData, err := extractAccountDataFromResponse(tt.response)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-
-			if accountData != nil {
-				assert.IsType(t, &AccountData{}, accountData)
-				assert.Equal(t, tt.accountData.ID, accountData.ID)
-				assert.Equal(t, tt.accountData.OrganisationID, accountData.OrganisationID)
-				assert.Equal(t, tt.accountData.Type, accountData.Type)
-				assert.Equal(t, tt.accountData.Version, accountData.Version)
-
-				assert.IsType(t, &AccountAttributes{}, accountData.Attributes)
-				assert.Equal(t, tt.accountData.Attributes.BankID, accountData.Attributes.BankID)
-				assert.Equal(t, tt.accountData.Attributes.BankIDCode, accountData.Attributes.BankIDCode)
-				assert.Equal(t, tt.accountData.Attributes.BaseCurrency, accountData.Attributes.BaseCurrency)
-				assert.Equal(t, tt.accountData.Attributes.Bic, accountData.Attributes.Bic)
-				assert.Equal(t, tt.accountData.Attributes.Country, accountData.Attributes.Country)
-				assert.Equal(t, tt.accountData.Attributes.Name, accountData.Attributes.Name)
-			}
-		})
-	}
-}
-
 func TestCreateResource(t *testing.T) {
 	tests := []struct {
-		name           string
-		accountData    *AccountData
-		httpUtilsSetup func(*mockHttpUtils)
-		wantErr        bool
+		name              string
+		accountData       *AccountData
+		httpUtilsSetup    func(*mockHttpUtils)
+		respUnmarshaller  func([]byte, interface{}) error
+		payloadMarshaller func(v interface{}) ([]byte, error)
+		wantErr           bool
 	}{
 		{
 			name: "Failed to create an account because of an API error",
@@ -87,7 +29,9 @@ func TestCreateResource(t *testing.T) {
 					errors.New("the api failed the request"),
 				)
 			},
-			wantErr: true,
+			payloadMarshaller: json.Marshal,
+			respUnmarshaller:  json.Unmarshal,
+			wantErr:           true,
 		},
 		{
 			name: "Failed to convert the response data after creating an account successfully",
@@ -97,7 +41,9 @@ func TestCreateResource(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: true,
+			payloadMarshaller: json.Marshal,
+			respUnmarshaller:  json.Unmarshal,
+			wantErr:           true,
 		},
 		{
 			name: "Successfully creates an account",
@@ -107,7 +53,31 @@ func TestCreateResource(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			payloadMarshaller: json.Marshal,
+			respUnmarshaller:  json.Unmarshal,
+			wantErr:           false,
+		},
+		{
+			name: "Failed to marshal the payload",
+			payloadMarshaller: func(interface{}) ([]byte, error) {
+				return nil, errors.New("failed to marshal")
+			},
+			respUnmarshaller: json.Unmarshal,
+			wantErr:          true,
+		},
+		{
+			name: "Failed to unmarshal the successful response",
+			httpUtilsSetup: func(client *mockHttpUtils) {
+				client.On("Post", mock.Anything, mock.Anything).Return(
+					loadTestFile("./testdata/api_response.json"),
+					nil,
+				)
+			},
+			payloadMarshaller: json.Marshal,
+			respUnmarshaller: func([]byte, interface{}) error {
+				return errors.New("failed to unmarshal")
+			},
+			wantErr: true,
 		},
 	}
 
@@ -119,7 +89,11 @@ func TestCreateResource(t *testing.T) {
 				tt.httpUtilsSetup(httpUtilsMock)
 			}
 
-			accountsClient := NewClient(httpUtilsMock)
+			accountsClient := Client{
+				http:              httpUtilsMock,
+				respUnmarshaller:  tt.respUnmarshaller,
+				payloadMarshaller: tt.payloadMarshaller,
+			}
 			accountData, err := accountsClient.CreateResource(tt.accountData)
 
 			if tt.wantErr {
@@ -139,9 +113,10 @@ func TestCreateResource(t *testing.T) {
 
 func TestFetchResource(t *testing.T) {
 	tests := []struct {
-		name           string
-		httpUtilsSetup func(utils *mockHttpUtils)
-		wantErr        bool
+		name             string
+		httpUtilsSetup   func(utils *mockHttpUtils)
+		respUnmarshaller func([]byte, interface{}) error
+		wantErr          bool
 	}{
 		{
 			name: "Failed to fetch account data because of account id was not found",
@@ -151,7 +126,8 @@ func TestFetchResource(t *testing.T) {
 					errors.New("not found"),
 				)
 			},
-			wantErr: true,
+			respUnmarshaller: json.Unmarshal,
+			wantErr:          true,
 		},
 		{
 			name: "Failed to fetch because of an invalid format from the api response",
@@ -161,7 +137,8 @@ func TestFetchResource(t *testing.T) {
 					errors.New("unable to unmarshal invalid json"),
 				)
 			},
-			wantErr: true,
+			respUnmarshaller: json.Unmarshal,
+			wantErr:          true,
 		},
 		{
 			name: "Successfully fetches an account",
@@ -171,7 +148,21 @@ func TestFetchResource(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			respUnmarshaller: json.Unmarshal,
+			wantErr:          false,
+		},
+		{
+			name: "Failed to unmarshal the successful response",
+			httpUtilsSetup: func(client *mockHttpUtils) {
+				client.On("Get", mock.Anything).Return(
+					loadTestFile("./testdata/api_response.json"),
+					nil,
+				)
+			},
+			respUnmarshaller: func([]byte, interface{}) error {
+				return errors.New("failed to unmarshal")
+			},
+			wantErr: true,
 		},
 	}
 
@@ -183,7 +174,11 @@ func TestFetchResource(t *testing.T) {
 				tt.httpUtilsSetup(httpUtilsMock)
 			}
 
-			accountsClient := NewClient(httpUtilsMock)
+			accountsClient := Client{
+				http:              httpUtilsMock,
+				respUnmarshaller:  tt.respUnmarshaller,
+				payloadMarshaller: json.Marshal,
+			}
 
 			accountID, err := uuid.NewUUID()
 			require.NoError(t, err)
