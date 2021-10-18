@@ -16,6 +16,7 @@ func TestClient(t *testing.T) {
 	tests := []struct {
 		name    string
 		baseURL string
+		timeout int
 		want    *Client
 		wantErr bool
 	}{
@@ -27,9 +28,12 @@ func TestClient(t *testing.T) {
 		{
 			name:    "Successfully creates new client",
 			baseURL: "https://valid-url.com",
+			timeout: 15,
 			want: &Client{
-				httpClient: http.DefaultClient,
-				baseURL: url.URL{
+				httpClient: &http.Client{
+					Timeout: 15000000000,
+				},
+				baseURI: &url.URL{
 					Scheme: "https",
 					Host:   "valid-url.com",
 				},
@@ -40,7 +44,7 @@ func TestClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewClient(http.DefaultClient, tt.baseURL)
+			got, err := NewClient(tt.baseURL, tt.timeout)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -120,9 +124,7 @@ func TestClientPost(t *testing.T) {
 			if tt.httpClientSetup != nil {
 				tt.httpClientSetup(httpClientMock)
 			}
-
-			client, err := NewClient(httpClientMock, "http://this-is.fake")
-			require.NoError(t, err)
+			client := createFakeHttpClient(httpClientMock)
 
 			got, err := client.Post("/a-valid-path", tt.body)
 			if tt.wantErr {
@@ -203,9 +205,7 @@ func TestClientGet(t *testing.T) {
 			if tt.httpClientSetup != nil {
 				tt.httpClientSetup(httpClientMock)
 			}
-
-			client, err := NewClient(httpClientMock, "http://this-is.fake")
-			require.NoError(t, err)
+			client := createFakeHttpClient(httpClientMock)
 
 			got, err := client.Get("/a-valid-path")
 			if tt.wantErr {
@@ -232,7 +232,7 @@ func TestClientDelete(t *testing.T) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
 						StatusCode: 204,
-						Body:       ioutil.NopCloser(bytes.NewBufferString("{}")),
+						Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 					},
 					nil,
 				)
@@ -245,7 +245,7 @@ func TestClientDelete(t *testing.T) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
 						StatusCode: 400,
-						Body:       ioutil.NopCloser(bytes.NewBufferString("{}")),
+						Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 					},
 					nil,
 				)
@@ -258,7 +258,7 @@ func TestClientDelete(t *testing.T) {
 				client.On("Do", mock.Anything).Return(
 					&http.Response{
 						StatusCode: 404,
-						Body:       ioutil.NopCloser(bytes.NewBufferString("{}")),
+						Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 					},
 					nil,
 				)
@@ -272,15 +272,13 @@ func TestClientDelete(t *testing.T) {
 			if tt.httpClientSetup != nil {
 				tt.httpClientSetup(httpClientMock)
 			}
-
-			client, err := NewClient(httpClientMock, "http://this-is.fake")
-			require.NoError(t, err)
+			client := createFakeHttpClient(httpClientMock)
 
 			query := map[string]string{
 				"version": "0",
 			}
 
-			err = client.Delete("/a-valid-path", query)
+			err := client.Delete("/a-valid-path", query)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -367,5 +365,13 @@ func TestHandleResponse(t *testing.T) {
 
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+func createFakeHttpClient(mock *mockHttpClient) Client {
+	baseURI, _ := url.ParseRequestURI("https://api.form3.tech")
+	return Client{
+		httpClient: mock,
+		baseURI:    baseURI,
 	}
 }

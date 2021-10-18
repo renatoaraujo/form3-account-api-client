@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type httpClient interface {
@@ -16,28 +17,29 @@ type httpClient interface {
 // Client is the representation of the client to perform some http operations
 type Client struct {
 	httpClient httpClient
-	baseURL    url.URL
+	baseURI    *url.URL
 }
 
-// NewClient creates a new http client instance with a http client which implements Do function and the base URI
-func NewClient(client httpClient, baseURI string) (*Client, error) {
+// NewClient creates a new http client with the base URI and the timeout for the requests made by this client
+func NewClient(baseURI string, timeout int) (*Client, error) {
 	parsedBaseURI, err := url.ParseRequestURI(baseURI)
 	if err != nil {
 		return nil, fmt.Errorf("%w; invalid base uri", err)
 	}
 
+	client := &http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
+	}
+
 	return &Client{
 		httpClient: client,
-		baseURL: url.URL{
-			Scheme: parsedBaseURI.Scheme,
-			Host:   parsedBaseURI.Host,
-		},
+		baseURI:    parsedBaseURI,
 	}, nil
 }
 
 // Post data to an API endpoint with given path and body content
 func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
-	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath})
+	requestURL := c.baseURI.ResolveReference(&url.URL{Path: resourcePath})
 	request, err := http.NewRequest("POST", requestURL.String(), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
@@ -53,7 +55,7 @@ func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 
 // Get data from an API endpoint with given path
 func (c Client) Get(resourcePath string) ([]byte, error) {
-	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath})
+	requestURL := c.baseURI.ResolveReference(&url.URL{Path: resourcePath})
 	request, err := http.NewRequest("GET", requestURL.String(), nil)
 	if err != nil {
 		return nil, err
@@ -73,7 +75,7 @@ func (c Client) Delete(resourcePath string, query map[string]string) error {
 	for key, value := range query {
 		rawQuery.Add(key, value)
 	}
-	requestURL := c.baseURL.ResolveReference(&url.URL{Path: resourcePath, RawQuery: rawQuery.Encode()})
+	requestURL := c.baseURI.ResolveReference(&url.URL{Path: resourcePath, RawQuery: rawQuery.Encode()})
 	request, err := http.NewRequest("DELETE", requestURL.String(), nil)
 	if err != nil {
 		return err

@@ -31,12 +31,10 @@ Import the module
 import "renatoaraujo/form3-account-api-client/accounts"
 ```
 
-To create, fetch or delete an account resource you need to initiate the client which depends on a http client
+To create, fetch or delete an account resource you need to initiate the client with the base uri and the request timeout
 
 ```go
-httpClient, err := httputils.NewClient(&http.Client{
-    Timeout: time.Duration(60) * time.Second,
-}, "https://api.form3.tech")
+httpClient, err := httputils.NewClient("https://api.form3.tech", 10)
 
 
 accountClient := accounts.NewClient(httpClient)

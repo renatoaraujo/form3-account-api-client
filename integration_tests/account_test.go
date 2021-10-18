@@ -3,7 +3,6 @@ package integration_tests
 import (
 	"log"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"testing"
@@ -25,13 +24,13 @@ func getEnv(key, fallback string) string {
 }
 
 func TestMain(m *testing.M) {
-	parsedUri, err := url.ParseRequestURI(getEnv("API_BASE_URI", "http://localhost:8080"))
+	parsedUri, err := url.ParseRequestURI(getEnv("API_BASE_URI", "https://api.form3.tech"))
 	if err != nil {
 		panic("failed to parse the base uri, please check your environment variables")
 	}
 
 	log.Println("checking if the host is available")
-	timeout := 1 * time.Second
+	timeout := time.Duration(1) * time.Second
 	conn, err := net.DialTimeout("tcp", parsedUri.Host, timeout)
 	if err != nil {
 		log.Println(err)
@@ -45,7 +44,7 @@ func TestMain(m *testing.M) {
 }
 
 func clientSetup() accounts.Client {
-	httpClient, _ := httputils.NewClient(http.DefaultClient, getEnv("API_BASE_URI", "http://localhost:8080"))
+	httpClient, _ := httputils.NewClient(getEnv("API_BASE_URI", "https://api.form3.tech"), 15)
 	return accounts.NewClient(httpClient)
 }
 
