@@ -69,11 +69,11 @@ func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w; failed to read response body", err)
 	}
-	if response.StatusCode == http.StatusCreated {
-		return respBody, nil
-	}
 
-	if response.StatusCode == http.StatusConflict || response.StatusCode == http.StatusBadRequest {
+	switch response.StatusCode {
+	case http.StatusCreated:
+		return respBody, nil
+	case http.StatusConflict, http.StatusBadRequest:
 		var errRes ResponseError
 		if err := c.unMarshalResp(respBody, &errRes); err != nil {
 			return nil, err
@@ -81,9 +81,9 @@ func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 
 		errRes.StatusCode = response.StatusCode
 		return nil, &errRes
+	default:
+		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 	}
-
-	return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 }
 
 // Get data from an API endpoint with given path
@@ -105,11 +105,10 @@ func (c Client) Get(resourcePath string) ([]byte, error) {
 		return nil, fmt.Errorf("%w; failed to read response body", err)
 	}
 
-	if response.StatusCode == http.StatusOK {
+	switch response.StatusCode {
+	case http.StatusOK:
 		return respBody, nil
-	}
-
-	if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusBadRequest {
+	case http.StatusNotFound, http.StatusBadRequest:
 		var errRes ResponseError
 		if err := c.unMarshalResp(respBody, &errRes); err != nil {
 			return nil, err
@@ -117,9 +116,9 @@ func (c Client) Get(resourcePath string) ([]byte, error) {
 
 		errRes.StatusCode = response.StatusCode
 		return nil, &errRes
+	default:
+		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 	}
-
-	return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 }
 
 // Delete data from an API endpoint with given path and query string
