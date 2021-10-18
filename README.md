@@ -73,6 +73,22 @@ or you can use the make command available
 $ make tests
 ```
 
+### Test coverage
+
+The test for both packages are in 100%
+
+accounts:
+```bash
+coverage: 100.0% of statements
+ok  	renatoaraujo/form3-account-api-client/accounts	3.110s	coverage: 100.0% of statements
+```
+
+httputils:
+```bash
+coverage: 100.0% of statements
+ok  	renatoaraujo/form3-account-api-client/httputils	0.402s	coverage: 100.0% of statements
+```
+
 ## Final notes
 
 ### Project structure
@@ -113,7 +129,7 @@ services using this library.
 I decided to play around with GitHub Actions a bit so that I could provide a simple pipeline, but I just added one job 
 for unit tests and setup the badge to add in this README file.
 
-In a real life scenario I would probably add some support for the integration tests, together with an 
-automatic semver release based in the release tags.
+In a real life scenario I would probably add some support for the integration tests, code quality and an 
+automatic semver release based in the git tags.
 
 I will probably do it in the future for a learning experience, still in this repository.
