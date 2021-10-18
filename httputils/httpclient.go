@@ -17,11 +17,11 @@ type httpClient interface {
 
 // Client is the representation of the client to perform some http operations
 type Client struct {
-	httpClient    httpClient
-	baseURI       url.URL
-	readBody      bodyReader
-	unMarshalResp respUnmarshaller
-	reqCreator    reqCreator
+	httpClient       httpClient
+	baseURI          url.URL
+	bodyReader       bodyReader
+	respUnmarshaller respUnmarshaller
+	reqCreator       reqCreator
 }
 
 type bodyReader func(io.Reader) ([]byte, error)
@@ -45,9 +45,9 @@ func NewClient(baseURI string, timeout int) (*Client, error) {
 			Scheme: parsedBaseURI.Scheme,
 			Host:   parsedBaseURI.Host,
 		},
-		readBody:      ioutil.ReadAll,
-		unMarshalResp: json.Unmarshal,
-		reqCreator:    http.NewRequest,
+		bodyReader:       ioutil.ReadAll,
+		respUnmarshaller: json.Unmarshal,
+		reqCreator:       http.NewRequest,
 	}, nil
 }
 
@@ -65,7 +65,7 @@ func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	respBody, err := c.readBody(response.Body)
+	respBody, err := c.bodyReader(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("%w; failed to read response body", err)
 	}
@@ -75,7 +75,7 @@ func (c Client) Post(resourcePath string, body []byte) ([]byte, error) {
 		return respBody, nil
 	case http.StatusConflict, http.StatusBadRequest:
 		var errRes ResponseError
-		if err := c.unMarshalResp(respBody, &errRes); err != nil {
+		if err := c.respUnmarshaller(respBody, &errRes); err != nil {
 			return nil, err
 		}
 
@@ -100,7 +100,7 @@ func (c Client) Get(resourcePath string) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	respBody, err := c.readBody(response.Body)
+	respBody, err := c.bodyReader(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("%w; failed to read response body", err)
 	}
@@ -110,7 +110,7 @@ func (c Client) Get(resourcePath string) ([]byte, error) {
 		return respBody, nil
 	case http.StatusNotFound, http.StatusBadRequest:
 		var errRes ResponseError
-		if err := c.unMarshalResp(respBody, &errRes); err != nil {
+		if err := c.respUnmarshaller(respBody, &errRes); err != nil {
 			return nil, err
 		}
 
@@ -142,12 +142,12 @@ func (c Client) Delete(resourcePath string, query map[string]string) error {
 	case http.StatusNoContent:
 		return nil
 	case http.StatusBadRequest:
-		respBody, err := c.readBody(response.Body)
+		respBody, err := c.bodyReader(response.Body)
 		if err != nil {
 			return fmt.Errorf("%w; failed to read response body", err)
 		}
 		var errRes ResponseError
-		if err := c.unMarshalResp(respBody, &errRes); err != nil {
+		if err := c.respUnmarshaller(respBody, &errRes); err != nil {
 			return err
 		}
 
