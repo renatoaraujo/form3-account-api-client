@@ -36,6 +36,7 @@ type AccountAttributes struct {
 	ValidationType          string   `json:"validation_type,omitempty"`
 }
 
+// Payload represents payload structure of the api request or response
 type Payload struct {
 	Data *AccountData `json:"data"`
 }
