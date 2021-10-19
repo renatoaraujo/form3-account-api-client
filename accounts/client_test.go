@@ -29,9 +29,7 @@ func TestCreateResource(t *testing.T) {
 					errors.New("the api failed the request"),
 				)
 			},
-			payloadMarshaller: json.Marshal,
-			respUnmarshaller:  json.Unmarshal,
-			wantErr:           true,
+			wantErr: true,
 		},
 		{
 			name: "Failed to convert the response data after creating an account successfully",
@@ -41,9 +39,7 @@ func TestCreateResource(t *testing.T) {
 					nil,
 				)
 			},
-			payloadMarshaller: json.Marshal,
-			respUnmarshaller:  json.Unmarshal,
-			wantErr:           true,
+			wantErr: true,
 		},
 		{
 			name: "Successfully creates an account",
@@ -53,17 +49,14 @@ func TestCreateResource(t *testing.T) {
 					nil,
 				)
 			},
-			payloadMarshaller: json.Marshal,
-			respUnmarshaller:  json.Unmarshal,
-			wantErr:           false,
+			wantErr: false,
 		},
 		{
 			name: "Failed to marshal the payload",
 			payloadMarshaller: func(interface{}) ([]byte, error) {
 				return nil, errors.New("failed to marshal")
 			},
-			respUnmarshaller: json.Unmarshal,
-			wantErr:          true,
+			wantErr: true,
 		},
 		{
 			name: "Failed to unmarshal the successful response",
@@ -73,7 +66,6 @@ func TestCreateResource(t *testing.T) {
 					nil,
 				)
 			},
-			payloadMarshaller: json.Marshal,
 			respUnmarshaller: func([]byte, interface{}) error {
 				return errors.New("failed to unmarshal")
 			},
@@ -87,6 +79,14 @@ func TestCreateResource(t *testing.T) {
 			httpUtilsMock := &mockHttpUtils{}
 			if tt.httpUtilsSetup != nil {
 				tt.httpUtilsSetup(httpUtilsMock)
+			}
+
+			if tt.respUnmarshaller == nil {
+				tt.respUnmarshaller = json.Unmarshal
+			}
+
+			if tt.payloadMarshaller == nil {
+				tt.payloadMarshaller = json.Marshal
 			}
 
 			accountsClient := Client{
@@ -126,8 +126,7 @@ func TestFetchResource(t *testing.T) {
 					errors.New("not found"),
 				)
 			},
-			respUnmarshaller: json.Unmarshal,
-			wantErr:          true,
+			wantErr: true,
 		},
 		{
 			name: "Failed to fetch because of an invalid format from the api response",
@@ -137,8 +136,7 @@ func TestFetchResource(t *testing.T) {
 					errors.New("unable to unmarshal invalid json"),
 				)
 			},
-			respUnmarshaller: json.Unmarshal,
-			wantErr:          true,
+			wantErr: true,
 		},
 		{
 			name: "Successfully fetches an account",
@@ -148,8 +146,7 @@ func TestFetchResource(t *testing.T) {
 					nil,
 				)
 			},
-			respUnmarshaller: json.Unmarshal,
-			wantErr:          false,
+			wantErr: false,
 		},
 		{
 			name: "Failed to unmarshal the successful response",
@@ -172,6 +169,10 @@ func TestFetchResource(t *testing.T) {
 			httpUtilsMock := &mockHttpUtils{}
 			if tt.httpUtilsSetup != nil {
 				tt.httpUtilsSetup(httpUtilsMock)
+			}
+
+			if tt.respUnmarshaller == nil {
+				tt.respUnmarshaller = json.Unmarshal
 			}
 
 			accountsClient := Client{
