@@ -76,11 +76,8 @@ func TestClientPost(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			want:             []byte(`{"data":"some valid json data"}`),
-			wantErr:          false,
+			want:    []byte(`{"data":"some valid json data"}`),
+			wantErr: false,
 		},
 		{
 			name: "Failed to perform the post request and receive 409 status code with a valid json data in body",
@@ -97,11 +94,8 @@ func TestClientPost(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "api failure with status code 409 and message: it violates a duplicate constraint",
+			wantErr:    true,
+			wantErrMsg: "api failure with status code 409 and message: it violates a duplicate constraint",
 		},
 		{
 			name: "Failed to perform the post request and receive 400 status code with a valid json data in body",
@@ -118,11 +112,8 @@ func TestClientPost(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "api failure with status code 400 and message: validation failure",
+			wantErr:    true,
+			wantErrMsg: "api failure with status code 400 and message: validation failure",
 		},
 		{
 			name: "Failed to perform the post request and receive 500 status code with an empty",
@@ -135,11 +126,8 @@ func TestClientPost(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "unexpected status code 500",
+			wantErr:    true,
+			wantErrMsg: "unexpected status code 500",
 		},
 		{
 			name: "Failed to perform the request failing the http client",
@@ -149,16 +137,11 @@ func TestClientPost(t *testing.T) {
 					errors.New("failed to perform request"),
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "failed to perform request; failed to post data",
+			wantErr:    true,
+			wantErrMsg: "failed to perform request; failed to post data",
 		},
 		{
-			name:             "Failed to create the request",
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
+			name: "Failed to create the request",
 			reqCreator: func(string, string, io.Reader) (*http.Request, error) {
 				return nil, errors.New("failed to create the request")
 			},
@@ -183,10 +166,8 @@ func TestClientPost(t *testing.T) {
 			bodyReader: func(io.Reader) ([]byte, error) {
 				return nil, errors.New("failed to read body for some reason")
 			},
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "failed to read body for some reason; failed to read response body",
+			wantErr:    true,
+			wantErrMsg: "failed to read body for some reason; failed to read response body",
 		},
 		{
 			name: "Failed to convert the error response body",
@@ -203,15 +184,14 @@ func TestClientPost(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader: ioutil.ReadAll,
 			respUnmarshaller: func([]byte, interface{}) error {
 				return errors.New("failed to unmarshal")
 			},
-			reqCreator: http.NewRequest,
 			wantErr:    true,
 			wantErrMsg: "failed to unmarshal",
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			httpClientMock := &mockHttpClient{}
@@ -260,11 +240,8 @@ func TestClientGet(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			want:             []byte(`{"data":"this is a valid json data"}`),
-			wantErr:          false,
+			want:    []byte(`{"data":"this is a valid json data"}`),
+			wantErr: false,
 		},
 		{
 			name: "Failed to perform the get request and receive 404 status code with a valid json data in body",
@@ -281,11 +258,8 @@ func TestClientGet(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "api failure with status code 404 and message: record xxx-xxx does not exist",
+			wantErr:    true,
+			wantErrMsg: "api failure with status code 404 and message: record xxx-xxx does not exist",
 		},
 		{
 			name: "Failed to perform the get request and receive 400 status code with a valid json data in body",
@@ -302,11 +276,8 @@ func TestClientGet(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "api failure with status code 400 and message: id is not a valid uuid",
+			wantErr:    true,
+			wantErrMsg: "api failure with status code 400 and message: id is not a valid uuid",
 		},
 		{
 			name: "Failed to perform the get request and receive 500 status code with an empty body",
@@ -319,11 +290,8 @@ func TestClientGet(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "unexpected status code 500",
+			wantErr:    true,
+			wantErrMsg: "unexpected status code 500",
 		},
 		{
 			name: "Failed to perform the request failing the http client",
@@ -333,16 +301,11 @@ func TestClientGet(t *testing.T) {
 					errors.New("failed to perform request"),
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "failed to perform request",
+			wantErr:    true,
+			wantErrMsg: "failed to perform request",
 		},
 		{
-			name:             "Failed to create the request",
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
+			name: "Failed to create the request",
 			reqCreator: func(method, url string, body io.Reader) (*http.Request, error) {
 				return nil, errors.New("failed to create the request")
 			},
@@ -364,11 +327,9 @@ func TestClientGet(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader: ioutil.ReadAll,
 			respUnmarshaller: func([]byte, interface{}) error {
 				return errors.New("failed to unmarshal")
 			},
-			reqCreator: http.NewRequest,
 			wantErr:    true,
 			wantErrMsg: "failed to unmarshal",
 		},
@@ -390,18 +351,18 @@ func TestClientGet(t *testing.T) {
 			bodyReader: func(io.Reader) ([]byte, error) {
 				return nil, errors.New("failed to read body for some reason")
 			},
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "failed to read body for some reason; failed to read response body",
+			wantErr:    true,
+			wantErrMsg: "failed to read body for some reason; failed to read response body",
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			httpClientMock := &mockHttpClient{}
 			if tt.httpClientSetup != nil {
 				tt.httpClientSetup(httpClientMock)
 			}
+
 			client := createFakeHttpClient(httpClientMock, tt.bodyReader, tt.respUnmarshaller, tt.reqCreator)
 
 			got, err := client.Get("/a-valid-path")
@@ -439,10 +400,7 @@ func TestClientDelete(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          false,
+			wantErr: false,
 		},
 		{
 			name: "Failed to perform the delete request and receive 400 status code with an empty body",
@@ -457,11 +415,8 @@ func TestClientDelete(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "api failure with status code 400 and message: invalid version number",
+			wantErr:    true,
+			wantErrMsg: "api failure with status code 400 and message: invalid version number",
 		},
 		{
 			name: "Failed to perform the delete request and receive 404 status code with an empty body",
@@ -474,11 +429,8 @@ func TestClientDelete(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "api failure with status code 404 and message: not found",
+			wantErr:    true,
+			wantErrMsg: "api failure with status code 404 and message: not found",
 		},
 		{
 			name: "Failed to perform the delete request and receive 500 status code with an empty body",
@@ -493,11 +445,8 @@ func TestClientDelete(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "unexpected status code 500",
+			wantErr:    true,
+			wantErrMsg: "unexpected status code 500",
 		},
 		{
 			name: "Failed to perform the request failing the http client",
@@ -507,16 +456,11 @@ func TestClientDelete(t *testing.T) {
 					errors.New("failed to perform request"),
 				)
 			},
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "failed to perform request",
+			wantErr:    true,
+			wantErrMsg: "failed to perform request",
 		},
 		{
-			name:             "Failed to create the request",
-			bodyReader:       ioutil.ReadAll,
-			respUnmarshaller: json.Unmarshal,
+			name: "Failed to create the request",
 			reqCreator: func(string, string, io.Reader) (*http.Request, error) {
 				return nil, errors.New("failed to create the request")
 			},
@@ -541,10 +485,8 @@ func TestClientDelete(t *testing.T) {
 			bodyReader: func(io.Reader) ([]byte, error) {
 				return nil, errors.New("failed to read body for some reason")
 			},
-			respUnmarshaller: json.Unmarshal,
-			reqCreator:       http.NewRequest,
-			wantErr:          true,
-			wantErrMsg:       "failed to read body for some reason; failed to read response body",
+			wantErr:    true,
+			wantErrMsg: "failed to read body for some reason; failed to read response body",
 		},
 		{
 			name: "Failed to convert the error response body",
@@ -561,15 +503,14 @@ func TestClientDelete(t *testing.T) {
 					nil,
 				)
 			},
-			bodyReader: ioutil.ReadAll,
 			respUnmarshaller: func([]byte, interface{}) error {
 				return errors.New("failed to unmarshal")
 			},
-			reqCreator: http.NewRequest,
 			wantErr:    true,
 			wantErrMsg: "failed to unmarshal",
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			httpClientMock := &mockHttpClient{}
@@ -597,18 +538,30 @@ func TestClientDelete(t *testing.T) {
 
 func createFakeHttpClient(
 	mock *mockHttpClient,
-	readBody func(io.Reader) ([]byte, error),
-	unMarshalResp func([]byte, interface{}) error,
+	bodyReader func(io.Reader) ([]byte, error),
+	respUnmarshaller func([]byte, interface{}) error,
 	reqCreator func(method, url string, body io.Reader) (*http.Request, error),
 ) Client {
+	if bodyReader == nil {
+		bodyReader = ioutil.ReadAll
+	}
+
+	if respUnmarshaller == nil {
+		respUnmarshaller = json.Unmarshal
+	}
+
+	if reqCreator == nil {
+		reqCreator = http.NewRequest
+	}
+
 	return Client{
 		httpClient: mock,
 		baseURI: url.URL{
 			Scheme: "https",
 			Host:   "api.form3.tech",
 		},
-		bodyReader:       readBody,
-		respUnmarshaller: unMarshalResp,
+		bodyReader:       bodyReader,
+		respUnmarshaller: respUnmarshaller,
 		reqCreator:       reqCreator,
 	}
 }
